@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./apps/api
+    command: ["sh", "-lc", "/app/entrypoint.sh"]
+    environment:
+      DATABASE_URL: postgresql://app:app@db:5432/app
+      PORT: 3001
+    volumes:
+      - ./apps/api:/app
+      - /app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3001:3001"
+
+  web:
+    build: ./apps/web
+    command:
+      [
+        "sh",
+        "-lc",
+        "npx -y pnpm@9.12.2 install --prefer-frozen-lockfile=false && npx -y pnpm@9.12.2 dev",
+      ]
+    environment:
+      VITE_API_URL: http://api:3001
+      PORT: 5173
+      CHOKIDAR_USEPOLLING: "1"
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+    depends_on:
+      - api
+    ports:
+      - "5173:5173"
+volumes:
+  db-data:
