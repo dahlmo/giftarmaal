@@ -3,6 +3,7 @@
   import { writable } from 'svelte/store';
   import Home from './views/Home.svelte';
   import Message from './views/Message.svelte';
+  import Admin from './views/Admin.svelte';
 
   const path = writable<string>(window.location.pathname);
 
@@ -34,10 +35,14 @@
   <a href="/" on:click|preventDefault={() => navigate('/')}>Home</a>
   |
   <a href="/message" on:click|preventDefault={() => navigate('/message')}>Message</a>
+  |
+  <a href="/handtere" on:click|preventDefault={() => navigate('/handtere')}>Handtere</a>
 </nav>
 
 {#if currentPath === '/message'}
   <Message {message} />
+{:else if currentPath === '/handtere'}
+  <Admin />
 {:else}
   <Home {message} />
 {/if}
