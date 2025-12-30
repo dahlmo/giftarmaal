@@ -11,3 +11,19 @@ model Message {
   id   Int    @id @default(autoincrement())
   text String
 }
+
+model AgendaItem {
+  id          Int      @id @default(autoincrement())
+  time        String
+  title       String
+  description String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  text      String   @db.VarChar(280)
+  createdAt DateTime @default(now())
+}
