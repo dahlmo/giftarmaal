@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./giftarmaal.png" alt="Giftarmaal logo" width="220" />
+<img src="./giftarmaal.png" alt="Giftarmaal logo" width="600" />
 
 # 💍 Giftarmaal
 
