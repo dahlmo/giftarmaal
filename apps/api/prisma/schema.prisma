@@ -12,29 +12,13 @@ model Message {
   text String
 }
 
-model ProgramItem {
+model ContentBlock {
   id        Int      @id @default(autoincrement())
-  time      String   // e.g. "15:00"
+  slug      String   @unique   // e.g. 'program', 'contacts', 'praktisk'
   title     String
-  detail    String?
-  order     Int
-}
-
-model Contact {
-  id    Int    @id @default(autoincrement())
-  name  String
-  role  String
-  phone String?
-  email String?
-  image String?
-}
-
-model PracticalInfo {
-  id        Int    @id @default(1)
-  transport String?
-  overnight String?
-  dresscode String?
-  faqs      Json?
+  data      Json
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
 }
 
 model Post {
