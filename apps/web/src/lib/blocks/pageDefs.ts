@@ -2,6 +2,59 @@ import type { BlockDef } from "./types";
 
 export const pageDefs: BlockDef[] = [
   {
+    type: "agenda",
+    title: "Program/Agenda",
+    defaults: () => ({
+      items: [
+        {
+          date: "2026-07-03",
+          time: "18:00",
+          title: "Blikjentgreier",
+          detail: "Hotellet",
+        },
+        {
+          date: "2026-07-04",
+          time: "13:37",
+          title: "Vielse",
+          detail: "Kirken",
+        },
+      ],
+    }),
+    fields: [
+      {
+        kind: "array",
+        name: "items",
+        label: "Program",
+        of: [
+          {
+            kind: "string",
+            name: "date",
+            label: "Dato",
+            placeholder: "2026-07-04",
+          },
+          {
+            kind: "string",
+            name: "time",
+            label: "Tid",
+            placeholder: "13:30",
+          },
+          {
+            kind: "string",
+            name: "title",
+            label: "Tittel",
+            placeholder: "Vielse",
+          },
+          {
+            kind: "text",
+            name: "detail",
+            label: "Beskrivelse",
+            placeholder: "Sted eller info",
+          },
+        ],
+      },
+    ],
+  },
+  {
     type: "infobox",
     title: "Info-boks (OBS/varsel)",
     defaults: () => ({
@@ -133,6 +186,7 @@ export const pageDefs: BlockDef[] = [
           "faq",
           "section",
           "infobox",
+          "agenda",
         ],
       },
     ],

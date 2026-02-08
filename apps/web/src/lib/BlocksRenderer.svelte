@@ -9,6 +9,69 @@
     return `w-${w} a-${a}`;
   }
 
+  type AgendaItem = {
+    date: string;
+    time: string;
+    title: string;
+    detail?: string;
+  };
+
+  function groupAgenda(items: AgendaItem[]) {
+    const map = new Map<string, AgendaItem[]>();
+
+    for (const it of items ?? []) {
+      const key = String(it?.date ?? "").slice(0, 10); // YYYY-MM-DD
+      if (!key) continue;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(it);
+    }
+
+    // sorter datoer
+    const days = Array.from(map.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, its]) => ({
+        key,
+        items: its
+          .slice()
+          .sort((x, y) => String(x.time).localeCompare(String(y.time))),
+      }));
+
+    return days;
+  }
+
+  const nbWeekdays = [
+    "SØNDAG",
+    "MANDAG",
+    "TIRSDAG",
+    "ONSDAG",
+    "TORSDAG",
+    "FREDAG",
+    "LØRDAG",
+  ];
+  const nbMonths = [
+    "JANUAR",
+    "FEBRUAR",
+    "MARS",
+    "APRIL",
+    "MAI",
+    "JUNI",
+    "JULI",
+    "AUGUST",
+    "SEPTEMBER",
+    "OKTOBER",
+    "NOVEMBER",
+    "DESEMBER",
+  ];
+
+  function formatDayTitle(isoDate: string) {
+    // isoDate: YYYY-MM-DD
+    const [y, m, d] = isoDate.split("-").map((x) => Number(x));
+    const dt = new Date(Date.UTC(y, (m ?? 1) - 1, d ?? 1));
+    const weekday = nbWeekdays[dt.getUTCDay()];
+    const month = nbMonths[(m ?? 1) - 1] ?? "";
+    return `${weekday} ${d}. ${month}`;
+  }
+
   const iconAlert = `
     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"
       xmlns="http://www.w3.org/2000/svg">
@@ -62,6 +125,30 @@
             <p class="q">{qa?.q ?? ""}</p>
             <p class="a">{qa?.a ?? ""}</p>
           </div>
+        {/each}
+      </div>
+    {:else if b.type === "agenda"}
+      <div class="agenda">
+        {#each groupAgenda(b.data?.items ?? []) as day (day.key)}
+          <section class="agenda-day">
+            <h3 class="agenda-day-title">{formatDayTitle(day.key)}</h3>
+            <div class="agenda-day-divider"></div>
+
+            <ul class="agenda-list">
+              {#each day.items as item, idx (idx)}
+                <li class="agenda-item">
+                  <div class="agenda-time">{item.time}</div>
+
+                  <div class="agenda-text">
+                    <div class="agenda-title">{item.title}</div>
+                    {#if item.detail}
+                      <div class="agenda-detail">{item.detail}</div>
+                    {/if}
+                  </div>
+                </li>
+              {/each}
+            </ul>
+          </section>
         {/each}
       </div>
     {:else if b.type === "section"}
@@ -348,6 +435,98 @@
     line-height: 1.5;
   }
 
+  /* ===== Agenda (program) ===== */
+  .agenda {
+    margin: 3.2rem 0 4.6rem;
+    font-family: "Montserrat", sans-serif;
+    color: rgba(42, 42, 42, 0.82);
+  }
+
+  .agenda-day {
+    margin: 3.4rem 0 5rem;
+  }
+
+  .agenda-day-title {
+    margin: 0;
+    text-align: center;
+
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.34em;
+
+    font-size: 1.65rem;
+    line-height: 1.1;
+    color: rgba(42, 42, 42, 0.85);
+  }
+
+  .agenda-day-divider {
+    margin: 1.25rem auto 0;
+    max-width: 760px;
+    border-top: 2px dotted rgba(42, 42, 42, 0.24);
+  }
+
+  /* list wrapper */
+  .agenda-list {
+    list-style: none;
+    padding: 0;
+    margin: 1.6rem auto 0;
+    max-width: 760px;
+  }
+
+  /* each row */
+  .agenda-item {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    column-gap: 2.2rem;
+
+    padding: 1.35rem 0;
+    align-items: start;
+
+    border-top: 2px dotted rgba(42, 42, 42, 0.24);
+  }
+
+  .agenda-item:first-child {
+    border-top: 0;
+    padding-top: 0.85rem;
+  }
+
+  /* left column (time) */
+  .agenda-time {
+    font-size: 1.2rem;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    color: rgba(42, 42, 42, 0.72);
+  }
+
+  /* right column text */
+  .agenda-text {
+    text-align: left;
+  }
+
+  .agenda-title {
+    font-size: 1.28rem;
+    font-weight: 400;
+    line-height: 1.35;
+    color: rgba(42, 42, 42, 0.75);
+  }
+
+  .agenda-detail {
+    margin-top: 0.4rem;
+    font-size: 1.28rem;
+    font-weight: 400;
+    line-height: 1.35;
+    color: rgba(42, 42, 42, 0.75);
+  }
+
+  /* If you want bold emphasis inside title/detail */
+  .agenda-title strong,
+  .agenda-detail strong,
+  .agenda-title b,
+  .agenda-detail b {
+    font-weight: 700;
+    color: rgba(42, 42, 42, 0.82);
+  }
+
   /* responsive */
   @media (max-width: 560px) {
     .infobox {
@@ -365,6 +544,30 @@
     .rule-title::before,
     .rule-title::after {
       max-width: 220px;
+    }
+    .agenda-day-title {
+      font-size: 1.25rem;
+      letter-spacing: 0.28em;
+    }
+
+    .agenda-day-divider,
+    .agenda-list {
+      max-width: 92vw;
+    }
+
+    .agenda-item {
+      grid-template-columns: 88px 1fr;
+      column-gap: 1.2rem;
+      padding: 1.05rem 0;
+    }
+
+    .agenda-time {
+      font-size: 1.05rem;
+    }
+
+    .agenda-title,
+    .agenda-detail {
+      font-size: 1.05rem;
     }
   }
 </style>
