@@ -2,6 +2,40 @@ import type { BlockDef } from "./types";
 
 export const pageDefs: BlockDef[] = [
   {
+    type: "infobox",
+    title: "Info-boks (OBS/varsel)",
+    defaults: () => ({
+      title: "OBS! Viktig beskjed",
+      body: "Her kommer informasjon.",
+      spoilerLabel: "Vis mer",
+      spoilerText: "",
+    }),
+    fields: [
+      {
+        kind: "string",
+        name: "title",
+        label: "Overskrift",
+      },
+      {
+        kind: "text",
+        name: "body",
+        label: "Brødtekst",
+      },
+      {
+        kind: "string",
+        name: "spoilerLabel",
+        label: "Spoiler-tekst (knapp)",
+        placeholder: "+ Vis mer",
+      },
+      {
+        kind: "text",
+        name: "spoilerText",
+        label: "Spoiler-innhold",
+        placeholder: "Teksten som vises når man klikker",
+      },
+    ],
+  },
+  {
     type: "heading",
     title: "Overskrift",
     defaults: () => ({ level: "2", text: "Ny overskrift" }),
@@ -91,7 +125,15 @@ export const pageDefs: BlockDef[] = [
         kind: "blocks",
         name: "children",
         label: "Innhold",
-        allowed: ["heading", "text", "cta", "grid", "faq", "section"],
+        allowed: [
+          "heading",
+          "text",
+          "cta",
+          "grid",
+          "faq",
+          "section",
+          "infobox",
+        ],
       },
     ],
   },

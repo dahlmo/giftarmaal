@@ -8,6 +8,13 @@
     const a = layout?.align ?? "center";
     return `w-${w} a-${a}`;
   }
+
+  const iconAlert = `
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 
+              10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+    </svg>`;
 </script>
 
 {#each blocks as b (b.id)}
@@ -33,10 +40,8 @@
     {:else if b.type === "grid"}
       {@const cols = Number(b.data?.columns ?? 3)}
       <div
-        class="grid"
-        style={"grid-template-columns: repeat(" +
-          (cols || 3) +
-          ", minmax(0, 1fr))"}
+        class="grid grid-tight"
+        style={"grid-template-columns: repeat(" + (cols || 3) + ", auto)"}
       >
         {#each b.data?.items ?? [] as it, idx (idx)}
           <div class="card">
@@ -49,7 +54,7 @@
       </div>
     {:else if b.type === "faq"}
       {#if b.data?.title}
-        <h2 class="section-title">{b.data.title}</h2>
+        <h2 class="rule-title">{b.data.title}</h2>
       {/if}
       <div class="faq">
         {#each b.data?.items ?? [] as qa, idx (idx)}
@@ -61,7 +66,7 @@
       </div>
     {:else if b.type === "section"}
       {#if b.data?.title}
-        <h2 class="section-title"><span>{b.data.title}</span></h2>
+        <h2 class="rule-title"><span>{b.data.title}</span></h2>
       {/if}
       <div class="stack">
         <svelte:self blocks={b.data?.children ?? []} />
@@ -71,13 +76,33 @@
     {:else if b.type === "spacer"}
       {@const size = b.data?.size ?? "md"}
       <div class={"spacer " + size}></div>
+    {:else if b.type === "infobox"}
+      <div class="infobox">
+        <div class="info-head">
+          {@html iconAlert}
+          <div class="info-title">{@html b.data?.title}</div>
+        </div>
+
+        <div class="info-divider"></div>
+
+        <p class="info-body">
+          {@html b.data?.body ?? ""}
+        </p>
+
+        {#if b.data?.spoilerText}
+          <details class="info-details">
+            <summary>{b.data?.spoilerLabel ?? "+ Vis mer"}</summary>
+            <div class="info-spoiler">{@html b.data?.spoilerText}</div>
+          </details>
+        {/if}
+      </div>
     {/if}
   </section>
 {/each}
 
 <style>
   .block {
-    margin: 3rem 0;
+    margin: 2rem 0;
   }
   .w-narrow {
     max-width: 520px;
@@ -108,20 +133,20 @@
   }
 
   .rule-title {
-    margin: 0 0 1.4rem;
+    margin: 6.4rem 0 4.4rem;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 1.15rem;
 
     font-family: "Montserrat", sans-serif;
-    font-weight: 500;
+    font-weight: 300;
     text-transform: uppercase;
-    letter-spacing: 0.28em;
+    letter-spacing: 0.34em;
 
     font-size: 1.55rem; /* matcher høyre */
     line-height: 1.1;
-    color: rgba(42, 42, 42, 0.92);
+    color: #413f40;
 
     text-align: center;
   }
@@ -141,7 +166,7 @@
   }
 
   .prose p {
-    margin: 0.35rem 0;
+    margin: 0rem 0;
     line-height: 1.55;
   }
 
@@ -154,12 +179,10 @@
 
   .grid {
     display: grid;
-    gap: 1rem;
+    gap: 3rem;
   }
   .card {
     padding: 0.8rem;
-    border-radius: 12px;
-    border: 1px solid rgba(0, 0, 0, 0.08);
   }
 
   .divider {
@@ -178,27 +201,6 @@
     height: 3.5rem;
   }
 
-  .section-title {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    letter-spacing: 0.18em;
-    font-weight: 600;
-    margin: 0 0 1.5rem;
-  }
-  .section-title::before,
-  .section-title::after {
-    content: "";
-    height: 1px;
-    background: rgba(0, 0, 0, 0.12);
-    flex: 1;
-    max-width: 260px;
-  }
-  .section-title span {
-    white-space: nowrap;
-  }
-
   .faq {
     text-align: left;
   }
@@ -214,6 +216,148 @@
     margin: 0 auto;
   }
 
+  .cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0.9rem 2.4rem;
+    border-radius: 999px;
+
+    background: #d8ccbf; /* lys beige */
+    color: rgba(42, 42, 42, 0.85);
+
+    font-family: "Montserrat", sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+
+    text-decoration: none;
+    box-shadow: 0 14px 26px rgba(0, 0, 0, 0.08);
+
+    margin: 1.6rem auto 1.2rem;
+    cursor: pointer;
+
+    transition:
+      filter 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .cta:hover {
+    filter: brightness(0.96);
+    transform: translateY(-1px);
+  }
+
+  .cta:active {
+    filter: brightness(0.92);
+    transform: translateY(0);
+  }
+
+  .infobox {
+    margin: 2rem auto;
+    max-width: 820px;
+
+    background: rgba(247, 246, 242, 0.9);
+    border-radius: 38px;
+
+    padding: 1.4rem 1.7rem 1.6rem;
+    box-shadow: 0 26px 44px rgba(0, 0, 0, 0.1);
+
+    font-family: "Montserrat", sans-serif;
+    color: rgba(42, 42, 42, 0.9);
+    text-align: center;
+  }
+
+  /* header */
+  .info-head {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    margin-top: 0.2rem;
+  }
+
+  .info-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 26px;
+    height: 26px;
+
+    border-radius: 999px;
+    background: rgba(42, 42, 42, 0.08);
+    color: rgba(42, 42, 42, 0.85);
+
+    font-weight: 800;
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  .info-title {
+    font-size: 1.15rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+
+  .info-title b,
+  .info-title strong {
+    font-weight: 800;
+  }
+
+  /* dotted divider */
+  .info-divider {
+    margin: 0.95rem auto 1.1rem;
+    max-width: 780px;
+    border-top: 2px dotted rgba(42, 42, 42, 0.24);
+  }
+
+  /* body text */
+  .info-body {
+    margin: 0 0 1rem;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: rgba(42, 42, 42, 0.75);
+  }
+
+  /* spoiler details */
+  .info-details {
+    margin-top: 0.5rem;
+  }
+
+  .info-details summary {
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: rgba(42, 42, 42, 0.7);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    list-style: none;
+  }
+
+  .info-details summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .info-spoiler {
+    margin-top: 0.7rem;
+    font-size: 0.9rem;
+    color: rgba(42, 42, 42, 0.75);
+    line-height: 1.5;
+  }
+
+  /* responsive */
+  @media (max-width: 560px) {
+    .infobox {
+      border-radius: 28px;
+      padding: 1.2rem 1.1rem 1.1rem;
+    }
+    .info-title {
+      font-size: 1rem;
+    }
+  }
   @media (max-width: 820px) {
     .rule-title {
       font-size: 1.7rem;
