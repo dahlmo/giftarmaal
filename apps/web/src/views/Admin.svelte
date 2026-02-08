@@ -6,7 +6,7 @@
     id: number;
     time: string;
     title: string;
-    description?: string;
+    detail?: string;
     order: number;
   };
   type Post = { id: number; text: string; createdAt: string };
@@ -14,7 +14,7 @@
   const agenda = writable<AgendaItem[]>([]);
   const posts = writable<Post[]>([]);
 
-  let form = { time: "", title: "", description: "" };
+  let form = { time: "", title: "", detail: "", order: 0 };
   let postText = "";
 
   async function load() {
@@ -31,7 +31,7 @@
       body: JSON.stringify(form),
     });
     if (res.ok) {
-      form = { time: "", title: "", description: "" };
+      form = { time: "", title: "", detail: "", order: 0 };
       await load();
     }
   }
@@ -92,7 +92,7 @@
           <input
             class="desc"
             placeholder="Description (optional)"
-            bind:value={item.description}
+            bind:value={item.detail}
             on:change={() => saveAgenda(item)}
           />
           <button class="ghost" on:click={() => move(item, -1)}>↑</button>
@@ -107,11 +107,7 @@
     <div class="row add">
       <input class="time" placeholder="13:30" bind:value={form.time} />
       <input class="title" placeholder="Tittel" bind:value={form.title} />
-      <input
-        class="desc"
-        placeholder="Beskrivelse"
-        bind:value={form.description}
-      />
+      <input class="desc" placeholder="Beskrivelse" bind:value={form.detail} />
       <button on:click={addAgenda}>Legg til</button>
     </div>
   </div>

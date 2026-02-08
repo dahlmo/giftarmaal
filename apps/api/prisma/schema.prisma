@@ -12,18 +12,64 @@ model Message {
   text String
 }
 
-model AgendaItem {
-  id          Int      @id @default(autoincrement())
-  time        String
-  title       String
-  description String?
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model ProgramItem {
+  id        Int      @id @default(autoincrement())
+  time      String   // e.g. "15:00"
+  title     String
+  detail    String?
+  order     Int
+}
+
+model Contact {
+  id    Int    @id @default(autoincrement())
+  name  String
+  role  String
+  phone String?
+  email String?
+  image String?
+}
+
+model PracticalInfo {
+  id        Int    @id @default(1)
+  transport String?
+  overnight String?
+  dresscode String?
+  faqs      Json?
 }
 
 model Post {
   id        Int      @id @default(autoincrement())
   text      String   @db.VarChar(280)
   createdAt DateTime @default(now())
+}
+
+model Location {
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique
+  title       String
+  description String?
+
+  kind        LocationKind @default(VENUE)
+
+  latitude    Decimal  @db.Decimal(9, 6)  // 62.123
+  longitude   Decimal  @db.Decimal(9, 6)  // 6.321
+
+  address     String?
+  city        String?
+  url         String?   // maps/website
+
+  emoji       String?   @db.VarChar(8)    // "⛪️", "🏨", "🎉"
+  sortOrder   Int       @default(0)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+enum LocationKind {
+  HOTEL
+  CEREMONY
+  PARTY
+  HOME
+  VENUE
+  OTHER
 }

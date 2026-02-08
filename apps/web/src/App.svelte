@@ -1,48 +1,28 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { writable } from 'svelte/store';
-  import Home from './views/Home.svelte';
-  import Message from './views/Message.svelte';
-  import Admin from './views/Admin.svelte';
+  import { onMount } from "svelte";
+  import Home from "./views/Home.svelte";
+  import Message from "./views/Message.svelte";
+  import Admin from "./views/Admin.svelte";
+  import PracticalInfo from "./views/PracticalInfo.svelte";
+  import Program from "./views/Program.svelte";
+  import Contact from "./views/Contact.svelte";
+  import { currentPath } from "./lib/router";
 
-  const path = writable<string>(window.location.pathname);
+  let message = "Loading...";
 
-  function navigate(to: string) {
-    if (window.location.pathname !== to) {
-      window.history.pushState({}, '', to);
-      path.set(to);
-    }
-  }
+  onMount(() => {});
 
-  window.addEventListener('popstate', () => path.set(window.location.pathname));
-
-  let message = 'Loading...';
-
-  async function loadMessage() {
-    const res = await fetch('/api/message');
-    const data = await res.json();
-    message = data?.message ?? 'No message';
-  }
-
-  onMount(() => {
-    loadMessage();
-  });
-
-  $: currentPath = $path;
+  $: path = $currentPath;
 </script>
 
-<nav>
-  <a href="/" on:click|preventDefault={() => navigate('/')}>Home</a>
-  |
-  <a href="/message" on:click|preventDefault={() => navigate('/message')}>Message</a>
-  |
-  <a href="/handtere" on:click|preventDefault={() => navigate('/handtere')}>Handtere</a>
-</nav>
-
-{#if currentPath === '/message'}
-  <Message {message} />
-{:else if currentPath === '/handtere'}
+{#if path === "/handtere"}
   <Admin />
+{:else if path === "/praktisk"}
+  <PracticalInfo />
+{:else if path === "/program"}
+  <Program />
+{:else if path === "/kontakt"}
+  <Contact />
 {:else}
   <Home {message} />
 {/if}
