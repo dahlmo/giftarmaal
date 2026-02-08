@@ -93,7 +93,11 @@
         <h2 class="rule-title"><span>{b.data?.text ?? ""}</span></h2>
       {/if}
     {:else if b.type === "text"}
-      <div class="prose">{@html b.data?.text ?? ""}</div>
+      {@const html = (b.data?.text ?? "")
+        .replace(/\r\n/g, "\n")
+        .replace(/\r/g, "\n")
+        .replace(/\n/g, "<br>")}
+      <div class="prose">{@html html}</div>
     {:else if b.type === "cta"}
       {#if b.data?.href}
         <a class="cta" href={b.data.href} rel="noopener noreferrer">

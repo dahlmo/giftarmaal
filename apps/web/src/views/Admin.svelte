@@ -1,9 +1,10 @@
 <script lang="ts">
+  import SimpleWysiwyg from "../lib/SimpleWysiwyg.svelte";
   import { onMount } from "svelte";
   import { writable } from "svelte/store";
   import BlocksEditor from "../lib/BlocksEditor.svelte";
   import type { Block } from "../lib/blocks/types";
-  import { pageDefs } from "../lib/blocks/pageDefs"; // Bruk denne importen
+  import { pageDefs } from "../lib/blocks/pageDefs";
 
   type AgendaItem = {
     id: number;
@@ -192,12 +193,11 @@
   <div class="panel">
     <h2>Oppdateringer/Feed</h2>
     <div class="post-form">
-      <textarea
-        rows="3"
-        maxlength="280"
-        placeholder="Skriv en kort oppdatering (max 280 tegn)"
+      <SimpleWysiwyg
         bind:value={postText}
-      ></textarea>
+        placeholder="Skriv en kort oppdatering (bold/italic + linjeskift)"
+        maxLength={280}
+      />
       <div class="form-actions">
         <span class="muted">{postText.length}/280</span>
         <button on:click={addPost} disabled={!postText.trim()}>Publiser</button>

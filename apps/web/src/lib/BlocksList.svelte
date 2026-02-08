@@ -1,10 +1,19 @@
 <script lang="ts">
+  import { createEventDispatcher } from "svelte";
   import type { Block, BlockDef, Field, Layout } from "./blocks/types";
   import BlocksList from "./BlocksList.svelte"; // recursion
+  import SimpleWysiwyg from "./SimpleWysiwyg.svelte"; // <- juster path om nødvendig
 
   export let value: Block[] = [];
   export let defs: BlockDef[] = [];
   export let allowed: string[] | undefined = undefined;
+
+  const dispatch = createEventDispatcher<{ change: { value: Block[] } }>();
+
+  function setValue(next: Block[]) {
+    value = next;
+    dispatch("change", { value: next });
+  }
 
   const defsByType = new Map(defs.map((d) => [d.type, d]));
 
@@ -16,7 +25,6 @@
 
   $: defsByType.clear(), defs.forEach((d) => defsByType.set(d.type, d));
   $: {
-    // keep addType valid if allowed/defs changed
     const opts = allowedTypes(undefined);
     if (!opts.includes(addType)) addType = opts[0] ?? "heading";
   }
@@ -46,15 +54,15 @@
     const copy = [...value];
     const [x] = copy.splice(i, 1);
     copy.splice(to, 0, x);
-    value = copy;
+    setValue(copy);
   }
 
   function remove(i: number) {
-    value = value.filter((_, idx) => idx !== i);
+    setValue(value.filter((_, idx) => idx !== i));
   }
 
   function add(type: string) {
-    value = [...value, makeBlock(type)];
+    setValue([...value, makeBlock(type)]);
   }
 
   function updateField(i: number, field: Field, e: Event) {
@@ -70,8 +78,16 @@
     else v = t.value;
 
     const copy = structuredClone(value) as Block[];
+    copy[i].data = copy[i].data ?? {};
     copy[i].data[field.name] = v;
-    value = copy;
+    setValue(copy);
+  }
+
+  function setFieldValue(i: number, fieldName: string, v: any) {
+    const copy = structuredClone(value) as Block[];
+    copy[i].data = copy[i].data ?? {};
+    copy[i].data[fieldName] = v;
+    setValue(copy);
   }
 
   function updateLayout(i: number, key: keyof Layout, e: Event) {
@@ -79,34 +95,31 @@
     const copy = structuredClone(value) as Block[];
     copy[i].layout = copy[i].layout ?? {};
     (copy[i].layout as any)[key] = t.value;
-    value = copy;
-  }
-
-  function onNestedTypeChange(blockId: string, e: Event) {
-    const v = (e.currentTarget as HTMLSelectElement).value;
-    setNestedAddType(blockId, v);
+    setValue(copy);
   }
 
   function addArrayItem(i: number, field: Extract<Field, { kind: "array" }>) {
     const copy = structuredClone(value) as Block[];
     const b = copy[i];
+    b.data = b.data ?? {};
     if (!Array.isArray(b.data[field.name])) b.data[field.name] = [];
 
     const obj: any = {};
     for (const f of field.of) obj[f.name] = f.kind === "boolean" ? false : "";
     b.data[field.name].push(obj);
 
-    value = copy;
+    setValue(copy);
   }
 
   function removeArrayItem(i: number, fieldName: string, idx: number) {
     const copy = structuredClone(value) as Block[];
     const b = copy[i];
+    b.data = b.data ?? {};
     if (!Array.isArray(b.data[fieldName])) b.data[fieldName] = [];
     b.data[fieldName] = b.data[fieldName].filter(
       (_: any, x: number) => x !== idx,
     );
-    value = copy;
+    setValue(copy);
   }
 
   function updateArrayField(
@@ -127,25 +140,45 @@
 
     const copy = structuredClone(value) as Block[];
     const b = copy[i];
+    b.data = b.data ?? {};
     if (!Array.isArray(b.data[fieldName])) b.data[fieldName] = [];
     b.data[fieldName][idx] = b.data[fieldName][idx] ?? {};
     b.data[fieldName][idx][key] = v;
-    value = copy;
+    setValue(copy);
+  }
+
+  function setArrayFieldValue(
+    i: number,
+    fieldName: string,
+    idx: number,
+    key: string,
+    v: any,
+  ) {
+    const copy = structuredClone(value) as Block[];
+    const b = copy[i];
+    b.data = b.data ?? {};
+    if (!Array.isArray(b.data[fieldName])) b.data[fieldName] = [];
+    b.data[fieldName][idx] = b.data[fieldName][idx] ?? {};
+    b.data[fieldName][idx][key] = v;
+    setValue(copy);
   }
 
   function addChildBlock(parentIndex: number, type: string) {
     const copy = structuredClone(value) as Block[];
     const b = copy[parentIndex];
+    b.data = b.data ?? {};
     b.data.children = b.data.children ?? [];
     (b.data.children as Block[]).push(makeBlock(type));
-    value = copy;
+    setValue(copy);
   }
 
   function ensureChildren(b: Block) {
+    b.data = b.data ?? {};
     b.data.children = b.data.children ?? [];
     return b.data.children as Block[];
   }
 
+  // ---- Nested add-type per block
   let nestedAddTypeByBlockId: Record<string, string> = {};
 
   function getNestedAddType(blockId: string, allowed?: string[]) {
@@ -159,6 +192,21 @@
 
   function setNestedAddType(blockId: string, v: string) {
     nestedAddTypeByBlockId[blockId] = v;
+  }
+
+  function onNestedTypeChange(blockId: string, e: Event) {
+    const v = (e.currentTarget as HTMLSelectElement).value;
+    setNestedAddType(blockId, v);
+  }
+
+  function handleNestedBlocksChange(
+    i: number,
+    e: CustomEvent<{ value: Block[] }>,
+  ) {
+    const copy = structuredClone(value) as Block[];
+    copy[i].data = copy[i].data ?? {};
+    copy[i].data.children = e.detail.value;
+    setValue(copy);
   }
 </script>
 
@@ -207,7 +255,7 @@
               <label class="full">
                 <span>{f.label}</span>
                 <input
-                  value={b.data[f.name] ?? ""}
+                  value={b.data?.[f.name] ?? ""}
                   placeholder={f.placeholder}
                   on:input={(e) => updateField(i, f, e)}
                 />
@@ -216,7 +264,7 @@
               <label class="full">
                 <span>{f.label}</span>
                 <input
-                  value={b.data[f.name] ?? ""}
+                  value={b.data?.[f.name] ?? ""}
                   placeholder={f.placeholder ?? "https://..."}
                   on:input={(e) => updateField(i, f, e)}
                 />
@@ -226,7 +274,7 @@
                 <span>{f.label}</span>
                 <input
                   type="number"
-                  value={b.data[f.name] ?? ""}
+                  value={b.data?.[f.name] ?? ""}
                   on:input={(e) => updateField(i, f, e)}
                 />
               </label>
@@ -234,28 +282,25 @@
               <label class="check full">
                 <input
                   type="checkbox"
-                  checked={!!b.data[f.name]}
+                  checked={!!b.data?.[f.name]}
                   on:change={(e) => updateField(i, f, e)}
                 />
                 <span>{f.label}</span>
               </label>
             {:else if f.kind === "text"}
-              <label class="full">
-                <span>{f.label}</span>
-                <textarea
-                  rows="4"
-                  value={b.data[f.name] ?? ""}
-                  on:input={(e) => updateField(i, f, e)}
-                ></textarea>
-                <div class="preview">
-                  {@html b.data[f.name] ?? ""}
-                </div>
-              </label>
+              <div class="full">
+                <span class="lbl">{f.label}</span>
+                <SimpleWysiwyg
+                  value={b.data?.[f.name] ?? ""}
+                  placeholder={f.placeholder ?? ""}
+                  on:input={(e) => setFieldValue(i, f.name, e.detail.value)}
+                />
+              </div>
             {:else if f.kind === "select"}
               <label>
                 <span>{f.label}</span>
                 <select
-                  value={b.data[f.name] ?? ""}
+                  value={b.data?.[f.name] ?? ""}
                   on:change={(e) => updateField(i, f, e)}
                 >
                   {#each f.options as opt (opt.value)}
@@ -272,7 +317,7 @@
                   >
                 </div>
 
-                {#each b.data[f.name] ?? [] as row, idx (idx)}
+                {#each b.data?.[f.name] ?? [] as row, idx (idx)}
                   <div class="array-row">
                     <div class="array-fields">
                       {#each f.of as sf (sf.name)}
@@ -293,22 +338,21 @@
                             />
                           </label>
                         {:else if sf.kind === "text"}
-                          <label class="full">
-                            <span>{sf.label}</span>
-                            <textarea
-                              rows="3"
+                          <div class="full">
+                            <span class="lbl">{sf.label}</span>
+                            <SimpleWysiwyg
                               value={row?.[sf.name] ?? ""}
+                              placeholder={sf.placeholder ?? ""}
                               on:input={(e) =>
-                                updateArrayField(
+                                setArrayFieldValue(
                                   i,
                                   f.name,
                                   idx,
                                   sf.name,
-                                  e,
-                                  sf.kind,
+                                  e.detail.value,
                                 )}
-                            ></textarea>
-                          </label>
+                            />
+                          </div>
                         {:else}
                           <label class="full">
                             <span>{sf.label}</span>
@@ -352,6 +396,7 @@
                         >
                       {/each}
                     </select>
+
                     <button
                       class="ghost"
                       on:click={() =>
@@ -360,10 +405,12 @@
                     >
                   </div>
                 </div>
+
                 <BlocksList
-                  bind:value={b.data.children}
+                  value={ensureChildren(b)}
                   {defs}
                   allowed={f.allowed}
+                  on:change={(e) => handleNestedBlocksChange(i, e)}
                 />
               </div>
             {/if}
@@ -431,7 +478,8 @@
     display: grid;
     gap: 0.25rem;
   }
-  label span {
+  label span,
+  .lbl {
     font-size: 0.8rem;
     color: #6e756f;
   }
