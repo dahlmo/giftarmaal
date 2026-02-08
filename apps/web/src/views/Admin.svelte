@@ -190,50 +190,6 @@
   <h1>Handtere</h1>
 
   <div class="panel">
-    <h2>Program/Agenda</h2>
-    <div class="list">
-      {#each $agenda as item (item.id)}
-        <div class="row">
-          <input
-            class="time"
-            value={item.time}
-            on:input={(e) => updateAgendaField(item.id, "time", e.target.value)}
-            on:change={() => saveAgenda(item)}
-          />
-          <input
-            class="title"
-            value={item.title}
-            on:input={(e) =>
-              updateAgendaField(item.id, "title", e.target.value)}
-            on:change={() => saveAgenda(item)}
-          />
-          <input
-            class="desc"
-            placeholder="Description (optional)"
-            value={item.detail ?? ""}
-            on:input={(e) =>
-              updateAgendaField(item.id, "detail", e.target.value)}
-            on:change={() => saveAgenda(item)}
-          />
-          <button class="ghost" on:click={() => moveById(item.id, -1)}>↑</button
-          >
-          <button class="ghost" on:click={() => moveById(item.id, 1)}>↓</button>
-          <button class="danger" on:click={() => removeAgenda(item.id)}
-            >Slett</button
-          >
-        </div>
-      {/each}
-    </div>
-
-    <div class="row add">
-      <input class="time" placeholder="13:30" bind:value={form.time} />
-      <input class="title" placeholder="Tittel" bind:value={form.title} />
-      <input class="desc" placeholder="Beskrivelse" bind:value={form.detail} />
-      <button on:click={addAgenda}>Legg til</button>
-    </div>
-  </div>
-
-  <div class="panel">
     <h2>Oppdateringer/Feed</h2>
     <div class="post-form">
       <textarea
