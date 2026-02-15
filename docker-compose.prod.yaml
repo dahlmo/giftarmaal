@@ -1,15 +1,16 @@
 services:
   caddy:
-    image: caddy:2
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile.prod
     ports:
       - "80:80"
       - "443:443"
     volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
     depends_on:
-      - web
       - api
     restart: unless-stopped
 
@@ -39,23 +40,6 @@ services:
         condition: service_healthy
     expose:
       - "3001"
-    restart: unless-stopped
-
-  web:
-    build: ./apps/web
-    command:
-      [
-        "sh",
-        "-lc",
-        "npx -y pnpm@9.12.2 install --prefer-frozen-lockfile=false && npx -y pnpm@9.12.2 dev --host 0.0.0.0 --port 5173",
-      ]
-    environment:
-      VITE_API_URL: ${PUBLIC_BASE_URL}/api
-      PORT: 5173
-      CHOKIDAR_USEPOLLING: "1"
-      WATCHPACK_POLLING: "true"
-    expose:
-      - "5173"
     restart: unless-stopped
 
 volumes:

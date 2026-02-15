@@ -1,0 +1,14 @@
+# Build
+FROM node:20-alpine AS build
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml* ./
+RUN corepack enable && corepack prepare pnpm@9.12.2 --activate
+RUN pnpm install --frozen-lockfile=false
+
+COPY . .
+RUN pnpm build
+
+# Serve static via Caddy
+FROM caddy:2-alpine
+COPY --from=build /app/dist /srv
