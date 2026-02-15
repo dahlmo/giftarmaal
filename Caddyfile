@@ -2,7 +2,7 @@
   encode zstd gzip
 
   basic_auth {
-    sniktitt $2a$14$X3YUZf3HJtMeykVJQZGSIeomcrGfJN/dq8sLb0xtQ5w111/kzdmLG
+    sniktitt $2a$14$Sg5D61QG6/0luqJtWiX.t.6QTtm3ChxMZXXlJybxgM91kDqCVsv3K
   }
 
   handle /api/* {
