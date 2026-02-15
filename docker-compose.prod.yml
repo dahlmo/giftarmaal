@@ -10,6 +10,8 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
+    environment:
+      DOMAIN: ${DOMAIN}
     depends_on:
       - api
     restart: unless-stopped
