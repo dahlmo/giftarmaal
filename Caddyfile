@@ -1,0 +1,15 @@
+{$DOMAIN} {
+  encode zstd gzip
+
+  basicauth {
+    sniktitt $2a$14$X3YUZf3HJtMeykVJQZGSIeomcrGfJN/dq8sLb0xtQ5w111/kzdmLG
+  }
+
+  handle_path /api/* {
+    reverse_proxy api:3001
+  }
+
+  handle {
+    reverse_proxy web:5173
+  }
+}
