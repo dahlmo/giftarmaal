@@ -1,17 +1,20 @@
 {$DOMAIN} {
   encode zstd gzip
 
-  basicauth {
+  basic_auth {
     sniktitt $2a$14$X3YUZf3HJtMeykVJQZGSIeomcrGfJN/dq8sLb0xtQ5w111/kzdmLG
   }
 
-  handle_path /api/* {
+  handle /api/* {
     reverse_proxy api:3001
   }
 
-  handle {
-    root * /srv
-    try_files {path} /index.html
-    file_server
+  root * /srv
+  file_server
+
+  @notFile {
+    not file
+    not path /api/*
   }
+  rewrite @notFile /index.html
 }
