@@ -4,7 +4,7 @@
   import BlocksRenderer from "../lib/BlocksRenderer.svelte";
   import type { Block } from "../lib/blocks/types";
   import { onMount } from "svelte";
-  import ScrollNudge from "src/components/ScrollNudge.svelte";
+  import ScrollNudge from "../components/ScrollNudge.svelte";
 
   let blocks: Block[] = [];
   let loading = true;
@@ -28,7 +28,7 @@
     loading = true;
     error = null;
     try {
-      const res = await fetch("/api/content/program");
+      const res = await fetch("/api/content/program", { cache: "no-store" });
       if (!res.ok) throw new Error("Kunne ikke hente innhold");
       const json = await res.json();
       blocks = sanitizeBlocks(

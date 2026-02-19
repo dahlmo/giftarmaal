@@ -23,7 +23,7 @@
     loading = true;
     error = null;
     try {
-      const res = await fetch("/api/content/praktisk");
+      const res = await fetch("/api/content/praktisk", { cache: "no-store" });
       if (!res.ok) throw new Error("Kunne ikke hente innhold");
       const json = await res.json();
       blocks = sanitizeBlocks(
