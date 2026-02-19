@@ -65,7 +65,7 @@
   <main class="page">
     <div class="wrap">
       <section class="intro">
-        <h1 class="page-title">KONTAKT</h1>
+        <h1 class="page-title">KONTAKT (Ikke ferdig!)</h1>
       </section>
 
       {#if loading}
