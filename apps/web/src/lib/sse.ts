@@ -3,7 +3,8 @@ import { readable } from "svelte/store";
 // Accept SSR-safe import
 export type SseEvent = { type?: string; data?: any; slug?: string };
 
-export const sseContentSlug = readable<string | null>(null, (set) => {
+export type SseContentSlugEvent = { slug: string; ts: number };
+export const sseContentSlug = readable<SseContentSlugEvent | null>(null, (set) => {
   if (typeof window === "undefined") return;
   const es = new window.EventSource("/api/events");
 
@@ -11,7 +12,7 @@ export const sseContentSlug = readable<string | null>(null, (set) => {
     console.debug("event received", ev.data);
     try {
       const { type, data, slug } = JSON.parse(ev.data) || {};
-      if (type === "content-updated" && slug) set(slug);
+      if (type === "content-updated" && slug) set({ slug, ts: Date.now() });
     } catch (e) {
       console.error("Failed to parse SSE event", e);
     }
