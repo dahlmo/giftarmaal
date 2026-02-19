@@ -11,6 +11,6 @@ export class EventsService {
   }
 
   emit(type: string, data?: any) {
-    this.subject.next({ type, data });
+    this.subject.next({ data: JSON.stringify({ type, ...data }) });
   }
 }

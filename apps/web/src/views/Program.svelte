@@ -4,6 +4,7 @@
   import BlocksRenderer from "../lib/BlocksRenderer.svelte";
   import type { Block } from "../lib/blocks/types";
   import { onMount } from "svelte";
+  import ScrollNudge from "src/components/ScrollNudge.svelte";
 
   let blocks: Block[] = [];
   let loading = true;
@@ -52,10 +53,13 @@
         <h1 class="page-title">PROGRAM</h1>
         <p class="lead">Noter deg programmet, og forsøk å møte på tiden!</p>
 
-        <div class="scroll" aria-hidden="true">
-          <span>⌄</span>
-          <span>⌄</span>
-        </div>
+        <ScrollNudge
+          onClick={() => {
+            document
+              .querySelector(".content")
+              ?.scrollIntoView({ behavior: "smooth" });
+          }}
+        />
       </div>
     </section>
 

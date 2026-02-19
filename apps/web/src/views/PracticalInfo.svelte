@@ -1,6 +1,7 @@
 <script lang="ts">
   import Template from "../lib/Template.svelte";
   import BlocksRenderer from "../lib/BlocksRenderer.svelte";
+  import ScrollNudge from "../components/ScrollNudge.svelte";
   import type { Block } from "../lib/blocks/types";
   import { onMount } from "svelte";
   import { sseContentSlug } from "../lib/sse";
@@ -55,10 +56,13 @@
           kontaktinformasjon i menyen over.
         </p>
 
-        <div class="scroll" aria-hidden="true">
-          <span>⌄</span>
-          <span>⌄</span>
-        </div>
+        <ScrollNudge
+          onClick={() => {
+            document
+              .querySelector(".content")
+              ?.scrollIntoView({ behavior: "smooth" });
+          }}
+        />
       </div>
     </section>
 

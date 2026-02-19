@@ -8,10 +8,13 @@ export const sseContentSlug = readable<string | null>(null, (set) => {
   const es = new window.EventSource("/api/events");
 
   es.addEventListener("message", (ev: MessageEvent) => {
+    console.debug("event received", ev.data);
     try {
       const { type, data, slug } = JSON.parse(ev.data) || {};
       if (type === "content-updated" && slug) set(slug);
-    } catch {}
+    } catch (e) {
+      console.error("Failed to parse SSE event", e);
+    }
   });
 
   return () => es.close();
