@@ -20,8 +20,8 @@
   }
 
   // SSE auto-reload
-  sseContentSlug.subscribe((slug: string | null) => {
-    if (slug === "program") loadContent();
+  sseContentSlug.subscribe((x) => {
+    if (x?.slug === "program") loadContent();
   });
 
   async function loadContent() {

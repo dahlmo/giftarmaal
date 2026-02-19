@@ -38,8 +38,8 @@
   }
 
   // SSE auto-reload
-  sseContentSlug.subscribe((slug) => {
-    if (slug === "praktisk") loadContent();
+  sseContentSlug.subscribe((x) => {
+    if (x?.slug === "praktisk") loadContent();
   });
 
   onMount(loadContent);
