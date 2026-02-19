@@ -10,7 +10,10 @@ import { PrismaService } from "./prisma";
 
 @Controller("api/content")
 export class ContentController {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private events: import("./events.service").EventsService,
+  ) {}
 
   @Get(":slug")
   async get(@Param("slug") slug: string) {
@@ -38,6 +41,7 @@ export class ContentController {
         data: body.data,
       },
     });
+    this.events.emit("content-updated", { slug });
     return updated;
   }
 }

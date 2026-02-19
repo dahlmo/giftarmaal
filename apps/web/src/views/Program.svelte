@@ -1,5 +1,6 @@
 <script lang="ts">
   import Template from "../lib/Template.svelte";
+  import { sseContentSlug } from "../lib/sse";
   import BlocksRenderer from "../lib/BlocksRenderer.svelte";
   import type { Block } from "../lib/blocks/types";
   import { onMount } from "svelte";
@@ -16,6 +17,11 @@
     };
     return (xs ?? []).map(walk);
   }
+
+  // SSE auto-reload
+  sseContentSlug.subscribe((slug: string | null) => {
+    if (slug === "program") loadContent();
+  });
 
   async function loadContent() {
     loading = true;

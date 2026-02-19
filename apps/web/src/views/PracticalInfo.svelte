@@ -3,6 +3,7 @@
   import BlocksRenderer from "../lib/BlocksRenderer.svelte";
   import type { Block } from "../lib/blocks/types";
   import { onMount } from "svelte";
+  import { sseContentSlug } from "../lib/sse";
 
   let blocks: Block[] = [];
   let loading = true;
@@ -34,6 +35,11 @@
       loading = false;
     }
   }
+
+  // SSE auto-reload
+  sseContentSlug.subscribe((slug) => {
+    if (slug === "praktisk") loadContent();
+  });
 
   onMount(loadContent);
 </script>

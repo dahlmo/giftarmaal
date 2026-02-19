@@ -8,8 +8,6 @@
   import Contact from "./views/Contact.svelte";
   import { currentPath } from "./lib/router";
 
-  let message = "Loading...";
-
   onMount(() => {});
 
   $: path = $currentPath;
@@ -24,5 +22,5 @@
 {:else if path === "/kontakt"}
   <Contact />
 {:else}
-  <Home {message} />
+  <Home />
 {/if}
