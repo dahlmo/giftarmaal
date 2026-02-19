@@ -422,6 +422,8 @@
     </div>
   {/each}
 
+  <h2>Legg til blokk</h2>
+
   <div class="add-root">
     <select bind:value={addType}>
       {#each allowedTypes(undefined) as t (t)}
@@ -484,16 +486,12 @@
     color: #6e756f;
   }
   input,
-  textarea,
   select {
     padding: 0.5rem 0.6rem;
     border: 1px solid #e0e4e0;
     border-radius: 8px;
     width: 100%;
     background: #fff;
-  }
-  .full {
-    grid-column: 1 / -1;
   }
   .check {
     display: flex;

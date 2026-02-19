@@ -7,12 +7,13 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { PrismaService } from "./prisma";
+import { EventsService } from "./events.service";
 
 @Controller("api/content")
 export class ContentController {
   constructor(
     private prisma: PrismaService,
-    private events: import("./events.service").EventsService,
+    private events: EventsService,
   ) {}
 
   @Get(":slug")
