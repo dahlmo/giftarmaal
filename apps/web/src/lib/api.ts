@@ -9,8 +9,8 @@ export type PersonRoles = [
 export type RsvpStatus = ["YES", "NO"];
 export type Person = {
   id: string;
-  firstName: string;
-  lastName: string;
+  friendlyName: string;
+  fullName: string;
   email: string;
   phone?: string;
   image?: string;

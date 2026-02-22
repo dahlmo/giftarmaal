@@ -146,8 +146,8 @@
   // ----------- PERSONS CRUD -----------
   let persons: Person[] = [];
   let personForm: Partial<Omit<Person, "id" | "createdAt" | "updatedAt">> = {
-    firstName: "",
-    lastName: "",
+    friendlyName: "",
+    fullName: "",
     email: "",
     title: "Guest",
     roles: ["GUEST"],
@@ -164,16 +164,16 @@
 
   async function submitPersonForm() {
     personError = "";
-    if (!personForm.firstName || !personForm.lastName || !personForm.email) {
-      personError = "Fornavn, etternavn og e-post kreves";
+    if (!personForm.friendlyName || !personForm.fullName || !personForm.email) {
+      personError = "Fornavn, fullt navn og e-post kreves";
       return;
     }
     savingPerson = true;
     try {
       await addPerson(personForm as any);
       personForm = {
-        firstName: "",
-        lastName: "",
+        friendlyName: "",
+        fullName: "",
         title: "Guest",
         email: "",
         roles: ["GUEST"],
@@ -211,8 +211,8 @@
   }
 
   async function saveEditPerson(id: string) {
-    if (!editPerson.firstName || !editPerson.lastName || !editPerson.email) {
-      personError = "Fornavn, etternavn og e-post kreves";
+    if (!editPerson.friendlyName || !editPerson.fullName || !editPerson.email) {
+      personError = "Fornavn, fullt navn og e-post kreves";
       return;
     }
     personError = "";
@@ -238,6 +238,7 @@
     { label: "Gjest", value: "GUEST" },
     { label: "Toastmaster", value: "TOASTMASTER" },
     { label: "Forlover", value: "PERSON_OF_HONOR" },
+    { label: "Brud/Brudgom", value: "SPOUSE_TO_BE" },
     { label: "Leverandør", value: "VENDOR" },
   ];
   const rsvpOpts: { label: string; value: RsvpStatus[number] }[] = [
@@ -269,15 +270,15 @@
           <label>Fornavn</label>
           <input
             placeholder="Fornavn"
-            bind:value={personForm.firstName}
+            bind:value={personForm.friendlyName}
             required
           />
         </div>
         <div class="field">
-          <label>Etternavn</label>
+          <label>Fullt navn</label>
           <input
-            placeholder="Etternavn"
-            bind:value={personForm.lastName}
+            placeholder="OBS! Fullt navn (for utsendinger etc.)"
+            bind:value={personForm.fullName}
             required
           />
         </div>
@@ -393,8 +394,8 @@
             {#if editingId === person.id}
               <tr class="editing-row">
                 <td>
-                  <input bind:value={editPerson.firstName} required />
-                  <input bind:value={editPerson.lastName} required />
+                  <input bind:value={editPerson.friendlyName} required />
+                  <input bind:value={editPerson.fullName} required />
                 </td>
                 <td>
                   <input bind:value={editPerson.email} required />
@@ -469,7 +470,7 @@
               </tr>
             {:else}
               <tr>
-                <td>{person.firstName} {person.lastName}</td>
+                <td>{person.friendlyName}</td>
                 <td>{person.email}</td>
                 <td>{person.phone}</td>
                 <td>{person.title}</td>

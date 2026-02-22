@@ -9,8 +9,8 @@
 
   const fallbackContact: Person = {
     id: "123-123-123",
-    firstName: "",
-    lastName: "",
+    friendlyName: "",
+    fullName: "",
     email: "",
     phone: "99999999",
     invitationCode: "",
@@ -79,7 +79,7 @@
         <section class="top-grid" aria-label="Kontaktinformasjon">
           {#each coupleList as p (p.id)}
             <div class="contact-card">
-              <h2 class="name">{p.firstName}</h2>
+              <h2 class="name">{p.friendlyName}</h2>
 
               <div class="lines">
                 {#if p.phone}
@@ -118,12 +118,12 @@
                   <img
                     class="avatar"
                     src={p.image}
-                    alt={p.firstName}
+                    alt={p.friendlyName}
                     loading="lazy"
                   />
                 {/if}
 
-                <div class="person-name">{p.firstName}</div>
+                <div class="person-name">{p.friendlyName}</div>
 
                 <div class="mini-lines">
                   {#if p.phone}
@@ -165,13 +165,13 @@
                 <img
                   class="avatar lg"
                   src={toastmasterContact.image}
-                  alt={toastmasterContact.firstName}
+                  alt={toastmasterContact.friendlyName}
                   loading="lazy"
                 />
               {/if}
 
               <div class="person-name">
-                {toastmasterContact.firstName}
+                {toastmasterContact.friendlyName}
               </div>
 
               <div class="mini-lines">

@@ -1,21 +1,8 @@
 -- CreateEnum
-CREATE TYPE "LocationKind" AS ENUM (
-    'HOTEL',
-    'CEREMONY',
-    'PARTY',
-    'HOME',
-    'VENUE',
-    'OTHER'
-);
+CREATE TYPE "LocationKind" AS ENUM ('HOTEL', 'CEREMONY', 'PARTY', 'HOME', 'VENUE', 'OTHER');
 
 -- CreateEnum
-CREATE TYPE "PersonRole" AS ENUM (
-    'GUEST',
-    'TOASTMASTER',
-    'PERSON_OF_HONOR',
-    'VENDOR',
-    'SPOUSE_TO_BE'
-);
+CREATE TYPE "PersonRole" AS ENUM ('GUEST', 'TOASTMASTER', 'PERSON_OF_HONOR', 'VENDOR', 'SPOUSE_TO_BE');
 
 -- CreateEnum
 CREATE TYPE "RsvpStatus" AS ENUM ('YES', 'NO');
@@ -24,6 +11,7 @@ CREATE TYPE "RsvpStatus" AS ENUM ('YES', 'NO');
 CREATE TABLE "Message" (
     "id" SERIAL NOT NULL,
     "text" TEXT NOT NULL,
+
     CONSTRAINT "Message_pkey" PRIMARY KEY ("id")
 );
 
@@ -35,6 +23,7 @@ CREATE TABLE "ContentBlock" (
     "data" JSONB NOT NULL,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     CONSTRAINT "ContentBlock_pkey" PRIMARY KEY ("id")
 );
 
@@ -43,6 +32,7 @@ CREATE TABLE "Post" (
     "id" SERIAL NOT NULL,
     "text" VARCHAR(280) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     CONSTRAINT "Post_pkey" PRIMARY KEY ("id")
 );
 
@@ -53,8 +43,8 @@ CREATE TABLE "Location" (
     "title" TEXT NOT NULL,
     "description" TEXT,
     "kind" "LocationKind" NOT NULL DEFAULT 'VENUE',
-    "latitude" DECIMAL(9, 6) NOT NULL,
-    "longitude" DECIMAL(9, 6) NOT NULL,
+    "latitude" DECIMAL(9,6) NOT NULL,
+    "longitude" DECIMAL(9,6) NOT NULL,
     "address" TEXT,
     "city" TEXT,
     "url" TEXT,
@@ -62,14 +52,15 @@ CREATE TABLE "Location" (
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+
     CONSTRAINT "Location_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Person" (
     "id" TEXT NOT NULL,
-    "firstName" TEXT NOT NULL,
-    "lastName" TEXT NOT NULL,
+    "fullName" TEXT NOT NULL,
+    "friendlyName" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "phone" TEXT,
     "invitationCode" TEXT,
@@ -78,11 +69,12 @@ CREATE TABLE "Person" (
     "city" TEXT,
     "country" TEXT,
     "title" TEXT NOT NULL DEFAULT 'Guest',
-    "roles" "PersonRole" [],
+    "roles" "PersonRole"[],
     "rsvp" "RsvpStatus" NOT NULL DEFAULT 'NO',
     "saveTheDateSent" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+
     CONSTRAINT "Person_pkey" PRIMARY KEY ("id")
 );
 

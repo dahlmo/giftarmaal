@@ -1,12 +1,19 @@
-import { PersonRole, RsvpStatus } from '@prisma/client';
-import { IsArray, IsEmail, IsEnum, IsOptional, IsString, IsBoolean } from 'class-validator';
+import { PersonRole, RsvpStatus } from "@prisma/client";
+import {
+  IsArray,
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsBoolean,
+} from "class-validator";
 
 export class CreatePersonDto {
   @IsString()
-  firstName!: string;
+  friendlyName!: string;
 
   @IsString()
-  lastName!: string;
+  fullName!: string;
 
   @IsEmail()
   email!: string;
@@ -41,7 +48,7 @@ export class CreatePersonDto {
 
   @IsOptional()
   @IsArray()
-  @IsEnum(PersonRole, {each: true})
+  @IsEnum(PersonRole, { each: true })
   roles?: PersonRole[];
 
   @IsOptional()
