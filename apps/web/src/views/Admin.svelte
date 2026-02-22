@@ -237,8 +237,7 @@
   const roles: { label: string; value: PersonRoles[number] }[] = [
     { label: "Gjest", value: "GUEST" },
     { label: "Toastmaster", value: "TOASTMASTER" },
-    { label: "Hedersperson", value: "PERSON_OF_HONOR" },
-    { label: "Forelder", value: "PARENT" },
+    { label: "Forlover", value: "PERSON_OF_HONOR" },
     { label: "Leverandør", value: "VENDOR" },
   ];
   const rsvpOpts: { label: string; value: RsvpStatus[number] }[] = [

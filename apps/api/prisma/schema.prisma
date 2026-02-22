@@ -82,8 +82,7 @@ enum PersonRole {
   TOASTMASTER
   PERSON_OF_HONOR
   VENDOR
-  GROOM
-  BRIDE
+  SPOUSE_TO_BE
 }
 
 enum RsvpStatus {
