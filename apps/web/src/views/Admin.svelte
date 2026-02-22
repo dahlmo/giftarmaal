@@ -234,6 +234,72 @@
     else personForm.roles = [...personForm.roles, role];
   }
 
+  // --- BILDE-OPPLASTING FOR PERSONER ---
+  let activeImagePersonId: string | null = null;
+  let uploadingImageFor: string | null = null;
+  let imageUploadError = "";
+
+  function toggleImageUpload(personId: string) {
+    imageUploadError = "";
+    if (activeImagePersonId === personId) {
+      activeImagePersonId = null;
+    } else {
+      activeImagePersonId = personId;
+    }
+  }
+
+  async function uploadPersonImage(personId: string, file: File) {
+    imageUploadError = "";
+
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      imageUploadError = "Filen må være et bilde.";
+      return;
+    }
+
+    try {
+      uploadingImageFor = personId;
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const res = await fetch(`/api/persons/${personId}/image`, {
+        method: "PUT",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        imageUploadError =
+          text || `Feil ved opplasting (status ${res.status}).`;
+        return;
+      }
+
+      activeImagePersonId = null;
+      await loadPersons();
+    } catch (e) {
+      imageUploadError =
+        e instanceof Error ? e.message : "Ukjent feil ved opplasting.";
+    } finally {
+      uploadingImageFor = null;
+    }
+  }
+
+  function handleFileInput(personId: string, event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    if (file) {
+      void uploadPersonImage(personId, file);
+    }
+  }
+
+  function handleDrop(personId: string, event: DragEvent) {
+    event.preventDefault();
+    const file = event.dataTransfer?.files?.[0];
+    if (file) {
+      void uploadPersonImage(personId, file);
+    }
+  }
+
   const roles: { label: string; value: PersonRoles[number] }[] = [
     { label: "Gjest", value: "GUEST" },
     { label: "Toastmaster", value: "TOASTMASTER" },
@@ -277,7 +343,7 @@
         <div class="field">
           <label>Fullt navn</label>
           <input
-            placeholder="OBS! Fullt navn (for utsendinger etc.)"
+            placeholder="OBS! Fullt navn (for utsendinger)"
             bind:value={personForm.fullName}
             required
           />
@@ -386,6 +452,7 @@
             <th>RSVP</th>
             <th>Save-date</th>
             <th>Roller</th>
+            <th>Bilde</th>
             <th></th>
           </tr>
         </thead>
@@ -455,6 +522,8 @@
                     {/each}
                   </div>
                 </td>
+                <!-- tom cel­le for "Bilde" i edit-modus -->
+                <td></td>
                 <td class="actions">
                   <button
                     class="ghost"
@@ -488,6 +557,19 @@
                       .map((r) => roles.find((x) => x.value === r)?.label)
                       .join(", ")}
                 </td>
+
+                <!-- Bilde-knapp -->
+                <td class="center">
+                  <button
+                    class="ghost icon-btn"
+                    type="button"
+                    title="Last opp bilde"
+                    on:click={() => toggleImageUpload(person.id)}
+                  >
+                    📸
+                  </button>
+                </td>
+
                 <td class="actions">
                   <button
                     class="ghost"
@@ -507,6 +589,40 @@
                   </button>
                 </td>
               </tr>
+
+              {#if activeImagePersonId === person.id}
+                <tr class="upload-row">
+                  <!-- må matche antall th i thead -->
+                  <td colspan="11">
+                    <div
+                      class="dropzone"
+                      on:dragover|preventDefault
+                      on:drop={(e) => handleDrop(person.id, e)}
+                    >
+                      <p>
+                        Dra inn et bilde her, eller
+                        <label class="file-link">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            on:change={(e) => handleFileInput(person.id, e)}
+                            hidden
+                          />
+                          velg fra disk
+                        </label>
+                      </p>
+
+                      {#if uploadingImageFor === person.id}
+                        <p>Laster opp bilde ...</p>
+                      {/if}
+
+                      {#if imageUploadError}
+                        <p class="error">{imageUploadError}</p>
+                      {/if}
+                    </div>
+                  </td>
+                </tr>
+              {/if}
             {/if}
           {/each}
         </tbody>
@@ -800,6 +916,38 @@
 
   .editing-row {
     background: #fbfdfc;
+  }
+
+  .upload-row td {
+    background: #f7fbf9;
+    border-bottom: 1px solid #e3ebe5;
+  }
+
+  .dropzone {
+    border: 1px dashed #b7c4bc;
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #4b524d;
+    background: rgba(245, 250, 247, 0.9);
+  }
+
+  .dropzone p {
+    margin: 0.2rem 0;
+  }
+
+  .file-link {
+    color: #2f6f5e;
+    text-decoration: underline;
+    cursor: pointer;
+    margin-left: 0.15rem;
+  }
+
+  .icon-btn {
+    padding-inline: 0.5rem;
+    font-size: 1.1rem;
+    line-height: 1;
   }
 
   /* -------- Felles UI -------- */
