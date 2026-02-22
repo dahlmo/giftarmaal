@@ -150,7 +150,7 @@ export class PersonsController {
     const filePath = path.join(uploadDir, filename);
 
     if (!fs.existsSync(filePath)) {
-      throw new NotFoundException("Image file not found");
+      throw new NotFoundException(`Image file not found: ${filePath}`);
     }
 
     res.setHeader("Content-Type", "image/jpeg");
