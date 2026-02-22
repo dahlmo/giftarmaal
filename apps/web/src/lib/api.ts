@@ -1,12 +1,11 @@
-export type PersonRoles = [
-  "GUEST",
-  "TOASTMASTER",
-  "PERSON_OF_HONOR",
-  "PARENT",
-  "VENDOR",
-  "SPOUSE_TO_BE",
-];
-export type RsvpStatus = ["YES", "NO"];
+export type PersonRoles =
+  | "GUEST"
+  | "TOASTMASTER"
+  | "PERSON_OF_HONOR"
+  | "PARENT"
+  | "VENDOR"
+  | "SPOUSE_TO_BE";
+export type RsvpStatus = "YES" | "NO";
 export type Person = {
   id: string;
   friendlyName: string;
@@ -20,11 +19,13 @@ export type Person = {
   city?: string;
   country?: string;
   title: string;
-  roles: (typeof PersonRoles)[number][];
-  rsvp: (typeof RsvpStatus)[number];
+  roles: PersonRoles[];
+  rsvp: RsvpStatus;
   saveTheDateSent: boolean;
   createdAt: string;
   updatedAt: string;
+  imagePath: string;
+  thumbPath: string;
 };
 
 export async function listPersons(): Promise<Person[]> {

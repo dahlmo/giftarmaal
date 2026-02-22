@@ -11,6 +11,7 @@ import {
   Post,
   Get,
   Query,
+  Res,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { diskStorage } from "multer";
@@ -19,6 +20,7 @@ import { EventsService } from "./events.service";
 import * as sharp from "sharp";
 import * as path from "path";
 import * as fs from "fs";
+import type { Response } from "express";
 import { CreatePersonDto, UpdatePersonDto } from "./persons.dto";
 
 @Controller("api/persons")
@@ -66,6 +68,8 @@ export class PersonsController {
     return { ok: true };
   }
 
+  // ---------- BILDE-OPPLASTING ----------
+
   @Put(":id/image")
   @UseInterceptors(
     FileInterceptor("image", {
@@ -85,39 +89,74 @@ export class PersonsController {
   ) {
     if (!file) throw new NotFoundException("No image uploaded");
 
-    // Finn personen
     const person = await this.prisma.person.findUnique({ where: { id } });
     if (!person) throw new NotFoundException("Person not found");
 
-    const finalPathFull = `/data/uploads/person-${id}-full.jpg`;
-    const finalPathThumb = `/data/uploads/person-${id}-thumb.jpg`;
+    const uploadDir = "/data/uploads";
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
 
-    // Resize & optimize
+    const fullFile = path.join(uploadDir, `person-${id}-full.jpg`);
+    const thumbFile = path.join(uploadDir, `person-${id}-thumb.jpg`);
+
+    // Resize & lagre
     await sharp(file.path)
       .resize(1200, 1200, { fit: "inside", withoutEnlargement: true })
       .jpeg({ quality: 80 })
-      .toFile(finalPathFull);
+      .toFile(fullFile);
 
     await sharp(file.path)
       .resize(480, 480, { fit: "inside", withoutEnlargement: true })
       .jpeg({ quality: 80 })
-      .toFile(finalPathThumb);
+      .toFile(thumbFile);
 
-    // Fjern temp
+    // Slett temp-fil
     fs.unlinkSync(file.path);
 
-    // Oppdater DB
-    const publicUrlFull = `/uploads/person-${id}-full.jpg`;
-    const publicUrlThumb = `/uploads/person-${id}-thumb.jpg`;
+    // Vi lagrer nå API-URLer i databasen (ikke statiske /uploads-paths)
+    const apiFullUrl = `/api/persons/${id}/image?size=full`;
+    const apiThumbUrl = `/api/persons/${id}/image?size=thumb`;
 
     await this.prisma.person.update({
       where: { id },
-      data: { imagePath: publicUrlFull, thumbPath: publicUrlThumb },
+      data: {
+        imagePath: apiFullUrl,
+        thumbPath: apiThumbUrl,
+      },
     });
 
-    // Emit SSE event så UI kan auto-oppdatere
     this.events.emit("person:image", { id });
 
-    return { ok: true, image: publicUrlFull };
+    return {
+      ok: true,
+      image: apiFullUrl,
+      thumb: apiThumbUrl,
+    };
+  }
+
+  @Get(":id/image")
+  async getImage(
+    @Param("id") id: string,
+    @Query("size") size: "thumb" | "full" = "full",
+    @Res() res: Response,
+  ) {
+    const person = await this.prisma.person.findUnique({ where: { id } });
+    if (!person) throw new NotFoundException("Person not found");
+
+    const uploadDir = "/data/uploads";
+    const filename =
+      size === "thumb" ? `person-${id}-thumb.jpg` : `person-${id}-full.jpg`;
+    const filePath = path.join(uploadDir, filename);
+
+    if (!fs.existsSync(filePath)) {
+      throw new NotFoundException("Image file not found");
+    }
+
+    res.setHeader("Content-Type", "image/jpeg");
+    // legg gjerne til caching:
+    res.setHeader("Cache-Control", "public, max-age=3600");
+
+    return res.sendFile(path.resolve(filePath));
   }
 }
