@@ -9,7 +9,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 </svelte:head>
 
-<Template>
+<Template style="light">
   <section class="cover">
     <div class="cover-inner">
       <img class="logo" src="/img/logo_with_date.png" alt="E&M 4. juli 2026" />

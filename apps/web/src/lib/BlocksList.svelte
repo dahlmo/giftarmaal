@@ -472,12 +472,11 @@
     margin-bottom: 0.6rem;
   }
   .grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: inline;
     gap: 0.6rem;
   }
   label {
-    display: grid;
+    display: inline;
     gap: 0.25rem;
   }
   label span,
