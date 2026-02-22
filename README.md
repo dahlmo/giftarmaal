@@ -76,3 +76,17 @@ apps/
 packages/
  └─ shared/     # Shared types & utilities
 ```
+
+## Howto?
+
+# Init Prisma and Generate Client
+
+```console
+docker compose exec api sh -lc "cd /app && npx -y pnpm@9.12.2 pnpm --filter api exec prisma migrate dev --name init"
+```
+
+# Run migrations
+
+```console
+docker compose exec api sh -lc "cd /app && npx -y pnpm@9.12.2 pnpm prisma migrate deploy"
+```
