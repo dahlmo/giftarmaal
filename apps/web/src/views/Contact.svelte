@@ -80,7 +80,6 @@
           {#each coupleList as p (p.id)}
             <div class="contact-card">
               <h2 class="name">{p.friendlyName}</h2>
-
               <div class="lines">
                 {#if p.phone}
                   <div class="line">
@@ -114,10 +113,10 @@
           <div class="people-grid">
             {#each forlovereUi as p (p.id)}
               <div class="person">
-                {#if p.image}
+                {#if p.imagePath}
                   <img
                     class="avatar"
-                    src={p.image}
+                    src={p.imagePath}
                     alt={p.friendlyName}
                     loading="lazy"
                   />
@@ -161,10 +160,10 @@
             </p>
 
             <div class="toast">
-              {#if toastmasterContact.image}
+              {#if toastmasterContact.imagePath}
                 <img
                   class="avatar lg"
-                  src={toastmasterContact.image}
+                  src={toastmasterContact.imagePath}
                   alt={toastmasterContact.friendlyName}
                   loading="lazy"
                 />
