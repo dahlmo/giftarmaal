@@ -57,3 +57,35 @@ enum LocationKind {
   VENUE
   OTHER
 }
+
+model Person {
+  id              String      @id @default(uuid())
+  firstName       String
+  lastName        String
+  email           String
+  phone           String?
+  invitationCode  String?
+  addressLine1    String?
+  zipcode         String?
+  city            String?
+  country         String?
+  title           String      @default("Guest")
+  roles           PersonRole[]
+  rsvp            RsvpStatus @default(NO)
+  saveTheDateSent Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+enum PersonRole {
+  GUEST
+  TOASTMASTER
+  PERSON_OF_HONOR
+  PARENT
+  VENDOR
+}
+
+enum RsvpStatus {
+  YES
+  NO
+}

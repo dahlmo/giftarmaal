@@ -6,12 +6,15 @@ import { PostsController } from "./posts.controller";
 import { EventsController } from "./events.controller";
 import { EventsService } from "./events.service";
 
+import { PersonsController } from './persons.controller';
+
 @Module({
   controllers: [
     AppController,
     ContentController,
     PostsController,
     EventsController,
+    PersonsController,
   ],
   providers: [PrismaService, EventsService],
 })

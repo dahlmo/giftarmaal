@@ -5,6 +5,13 @@
   import BlocksEditor from "../lib/BlocksEditor.svelte";
   import type { Block } from "../lib/blocks/types";
   import { pageDefs } from "../lib/blocks/pageDefs";
+  import {
+    listPersons,
+    addPerson,
+    updatePerson,
+    deletePerson,
+  } from "../lib/api";
+  import type { Person, PersonRole, RsvpStatus } from "../lib/api";
 
   type AgendaItem = {
     id: number;
@@ -27,11 +34,9 @@
   };
   let postText = "";
 
-  // ---- Helpers
   function sanitizeBlocks(blocks: Block[]): Block[] {
     const walk = (b: Block): Block => {
       const data: any = b.data ?? {};
-      // if nested blocks live in data.children, sanitize them too
       if (Array.isArray(data.children)) {
         data.children = data.children.map(walk);
       }
@@ -40,20 +45,12 @@
     return (blocks ?? []).map(walk);
   }
 
-  // ---- Data load
   async function load() {
     const a = await fetch("/api/agenda").then((r) => r.json());
     agenda.set(a.items ?? []);
 
     const p = await fetch("/api/posts").then((r) => r.json());
     posts.set(p.posts ?? []);
-  }
-
-  // ---- Agenda CRUD
-  function updateAgendaField(id: number, key: keyof AgendaItem, value: any) {
-    agenda.update((xs) =>
-      xs.map((x) => (x.id === id ? { ...x, [key]: value } : x)),
-    );
   }
 
   async function addAgenda() {
@@ -81,37 +78,6 @@
     });
   }
 
-  async function removeAgenda(id: number) {
-    await fetch(`/api/agenda/${id}`, { method: "DELETE" });
-    await load();
-  }
-
-  // Better move: swap positions in local list, renumber orders, then persist changed ones
-  async function moveById(id: number, delta: number) {
-    let snapshot: AgendaItem[] = [];
-    const unsub = agenda.subscribe((xs) => (snapshot = xs));
-    unsub();
-
-    const idx = snapshot.findIndex((x) => x.id === id);
-    const to = idx + delta;
-    if (idx < 0 || to < 0 || to >= snapshot.length) return;
-
-    const copy = [...snapshot];
-    const [moved] = copy.splice(idx, 1);
-    copy.splice(to, 0, moved);
-
-    // Renumber to avoid duplicates and keep stable ordering
-    const renumbered = copy.map((x, i) => ({ ...x, order: i }));
-
-    agenda.set(renumbered);
-
-    // Persist only the two-ish items that changed (safe: persist all orders if you want)
-    const changed = renumbered.filter((x, i) => x.order !== snapshot[i]?.order);
-    await Promise.all(changed.map((x) => saveAgenda(x)));
-    await load();
-  }
-
-  // ---- Posts
   async function addPost() {
     if (!postText.trim()) return;
     const res = await fetch("/api/posts", {
@@ -125,11 +91,8 @@
     }
   }
 
-  // ---- Pages/Blocks panel
-
   let pageSlug = "praktisk";
   let pageBlocks: Block[] = [];
-
   let pagesLoading = true;
   let pagesSaving = false;
   let pagesError: string | null = null;
@@ -139,13 +102,10 @@
     pagesLoading = true;
     pagesError = null;
     pagesSavedAt = null;
-
     try {
       const res = await fetch(`/api/content/${pageSlug}`);
       if (!res.ok) throw new Error("Kunne ikke laste sideinnhold.");
       const json = await res.json();
-
-      // accept both shapes: {blocks} or {data:{blocks}}
       const blocks = (json?.blocks ?? json?.data?.blocks ?? []) as Block[];
       pageBlocks = sanitizeBlocks(blocks);
     } catch (e) {
@@ -165,7 +125,6 @@
       const res = await fetch(`/api/content/${pageSlug}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        // IMPORTANT: send under "data" so backend doesn't complain about missing data
         body: JSON.stringify({
           title: pageSlug,
           data: { blocks },
@@ -181,14 +140,296 @@
     }
   }
 
+  // ----------- PERSONS CRUD -----------
+  let persons: Person[] = [];
+  let personForm: Partial<Omit<Person, "id" | "createdAt" | "updatedAt">> = {
+    firstName: "",
+    lastName: "",
+    email: "",
+    title: "Guest",
+    roles: ["GUEST"],
+    rsvp: "NO",
+    saveTheDateSent: false,
+  };
+  let savingPerson = false;
+  let personError = "";
+  async function loadPersons() {
+    persons = await listPersons();
+  }
+  async function submitPersonForm() {
+    personError = "";
+    if (!personForm.firstName || !personForm.lastName || !personForm.email) {
+      personError = "Fornavn, etternavn og e-post kreves";
+      return;
+    }
+    savingPerson = true;
+    try {
+      await addPerson(personForm as any);
+      personForm = {
+        firstName: "",
+        lastName: "",
+        title: "Guest",
+        email: "",
+        roles: ["GUEST"],
+        rsvp: "NO",
+        saveTheDateSent: false,
+      };
+      await loadPersons();
+    } catch (e) {
+      personError = e instanceof Error ? e.message : "Kunne ikke lagre";
+    }
+    savingPerson = false;
+  }
+
+  // --- EDIT-MODUS FOR PERSONER ---
+  let editingId: string | null = null;
+  let editPerson: Partial<Omit<Person, "createdAt" | "updatedAt">> = {};
+
+  function startEdit(person: Person) {
+    editingId = person.id;
+    editPerson = { ...person };
+  }
+
+  function cancelEdit() {
+    editingId = null;
+    editPerson = {};
+  }
+
+  function toggleEditRole(role: PersonRole) {
+    editPerson.roles = editPerson.roles || [];
+    if (editPerson.roles.includes(role)) {
+      editPerson.roles = editPerson.roles.filter((r) => r !== role);
+    } else {
+      editPerson.roles = [...editPerson.roles, role];
+    }
+  }
+
+  async function saveEditPerson(id: string) {
+    if (!editPerson.firstName || !editPerson.lastName || !editPerson.email) {
+      personError = "Fornavn, etternavn og e-post kreves";
+      return;
+    }
+    personError = "";
+    await updatePerson(id, editPerson as any);
+    editingId = null;
+    editPerson = {};
+    await loadPersons();
+  }
+
+  async function doDeletePerson(id: string) {
+    await deletePerson(id);
+    await loadPersons();
+  }
+  function toggleRole(role: PersonRole) {
+    personForm.roles = personForm.roles || [];
+    if (personForm.roles.includes(role))
+      personForm.roles = personForm.roles.filter((r) => r !== role);
+    else personForm.roles = [...personForm.roles, role];
+  }
+  const roles: { label: string; value: PersonRole }[] = [
+    { label: "Gjest", value: "GUEST" },
+    { label: "Toastmaster", value: "TOASTMASTER" },
+    { label: "Hedersperson", value: "PERSON_OF_HONOR" },
+    { label: "Forelder", value: "PARENT" },
+    { label: "Leverandør", value: "VENDOR" },
+  ];
+  const rsvpOpts: { label: string; value: RsvpStatus }[] = [
+    { label: "Kommer", value: "YES" },
+    { label: "Kommer ikke", value: "NO" },
+  ];
+
   onMount(async () => {
     await load();
+    await loadPersons();
     await loadPage();
   });
 </script>
 
 <section class="wrap">
   <h1>Handtere</h1>
+
+  <!-- Gjesteliste/Persons panel -->
+  <div class="panel">
+    <h2>Gjesteliste</h2>
+    <form
+      class="row add"
+      on:submit|preventDefault={submitPersonForm}
+      autocomplete="off"
+    >
+      <input
+        placeholder="Fornavn"
+        bind:value={personForm.firstName}
+        required
+        size="8"
+      />
+      <input
+        placeholder="Etternavn"
+        bind:value={personForm.lastName}
+        required
+        size="10"
+      />
+      <input
+        placeholder="E-post"
+        bind:value={personForm.email}
+        required
+        size="14"
+      />
+      <input placeholder="Telefon" bind:value={personForm.phone} size="10" />
+      <input placeholder="Tittel" bind:value={personForm.title} size="10" />
+      <input
+        placeholder="Kode"
+        bind:value={personForm.invitationCode}
+        size="8"
+      />
+      <input
+        placeholder="Adresse 1"
+        bind:value={personForm.addressLine1}
+        size="12"
+      />
+      <input placeholder="Postnr" bind:value={personForm.zipcode} size="5" />
+      <input placeholder="Sted" bind:value={personForm.city} size="10" />
+      <input placeholder="Land" bind:value={personForm.country} size="8" />
+      <select bind:value={personForm.rsvp}>
+        <option value="NO">RSVP?</option>
+        {#each rsvpOpts as o}
+          <option value={o.value}>{o.label}</option>
+        {/each}
+      </select>
+      <label>
+        <input type="checkbox" bind:checked={personForm.saveTheDateSent} /> Save-the-date
+        sendt
+      </label>
+      <div style="min-width: 130px">
+        {#each roles as r}
+          <label style="margin:0 4px 0 0;font-weight:400;font-size:12px;">
+            <input
+              type="checkbox"
+              value={r.value}
+              checked={personForm.roles && personForm.roles.includes(r.value)}
+              on:change={() => toggleRole(r.value)}
+            />
+            {r.label}
+          </label>
+        {/each}
+      </div>
+      <button type="submit" disabled={savingPerson}>Legg til</button>
+    </form>
+    {#if personError}<div class="error">{personError}</div>{/if}
+
+    <table style="margin-top: 1.2rem; width: 100%; border-collapse: collapse">
+      <thead>
+        <tr style="background: #f7fbf9">
+          <th>Navn</th><th>E-post</th><th>Tlf</th><th>Tittel</th><th>Kode</th>
+          <th>Adresse</th><th>RSVP</th><th>Save-Date</th><th>Roller</th><th
+          ></th>
+        </tr>
+      </thead>
+      <tbody>
+        {#each persons as person (person.id)}
+          {#if editingId === person.id}
+            <tr>
+              <td>
+                <input bind:value={editPerson.firstName} size="7" required />
+                <input bind:value={editPerson.lastName} size="8" required />
+              </td>
+              <td><input bind:value={editPerson.email} size="14" required /></td
+              >
+              <td><input bind:value={editPerson.phone} size="8" /></td>
+              <td><input bind:value={editPerson.title} size="8" /></td>
+              <td><input bind:value={editPerson.invitationCode} size="8" /></td>
+              <td>
+                <input
+                  bind:value={editPerson.addressLine1}
+                  placeholder="Adresse 1"
+                  size="11"
+                />
+                <input
+                  bind:value={editPerson.zipcode}
+                  placeholder="Postnr"
+                  size="5"
+                />
+                <input
+                  bind:value={editPerson.city}
+                  placeholder="Sted"
+                  size="8"
+                />
+                <input
+                  bind:value={editPerson.country}
+                  placeholder="Land"
+                  size="7"
+                />
+              </td>
+              <td>
+                <select bind:value={editPerson.rsvp}>
+                  {#each rsvpOpts as o}
+                    <option value={o.value}>{o.label}</option>
+                  {/each}
+                </select>
+              </td>
+              <td>
+                <input
+                  type="checkbox"
+                  bind:checked={editPerson.saveTheDateSent}
+                /> Sendt
+              </td>
+              <td>
+                {#each roles as r}
+                  <label style="margin: 0 4px 0 0; font-size:11px;">
+                    <input
+                      type="checkbox"
+                      value={r.value}
+                      checked={editPerson.roles &&
+                        editPerson.roles.includes(r.value)}
+                      on:change={() => toggleEditRole(r.value)}
+                    />{r.label}
+                  </label>
+                {/each}
+              </td>
+              <td>
+                <button class="ghost" on:click={() => saveEditPerson(person.id)}
+                  >Lagre</button
+                >
+                <button class="ghost" on:click={cancelEdit}>Avbryt</button>
+              </td>
+            </tr>
+          {:else}
+            <tr>
+              <td>{person.firstName} {person.lastName}</td>
+              <td>{person.email}</td>
+              <td>{person.phone}</td>
+              <td>{person.title}</td>
+              <td>{person.invitationCode}</td>
+              <td>
+                {person.addressLine1}, {person.zipcode}
+                {person.city}
+                {person.country}
+              </td>
+              <td>{person.rsvp === "YES" ? "Ja" : "Nei"}</td>
+              <td>{person.saveTheDateSent ? "Ja" : "Nei"}</td>
+              <td>
+                {person.roles &&
+                  person.roles
+                    .map((r) => roles.find((x) => x.value === r)?.label)
+                    .join(", ")}
+              </td>
+              <td>
+                <button
+                  class="ghost"
+                  title="Rediger"
+                  on:click={() => startEdit(person)}>✎</button
+                >
+                <button
+                  class="danger"
+                  title="Slett"
+                  on:click={() => doDeletePerson(person.id)}>✕</button
+                >
+              </td>
+            </tr>
+          {/if}
+        {/each}
+      </tbody>
+    </table>
+  </div>
 
   <div class="panel">
     <h2>Oppdateringer/Feed</h2>
@@ -261,7 +502,7 @@
 
 <style>
   .wrap {
-    max-width: 900px;
+    max-width: 1200px;
     margin: 2rem auto;
     padding: 0 1rem;
   }
