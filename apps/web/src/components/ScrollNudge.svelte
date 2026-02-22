@@ -8,12 +8,12 @@
   on:click={onClick}
   aria-label="Scroll ned til innhold"
 >
-  {#each Array(3) as _}
-    <svg class="chevron" viewBox="0 0 100 24">
+  {#each [0, 1, 2] as i}
+    <svg class={"chevron chevron-" + i} viewBox="0 0 100 40">
       <path
-        d="M10 6 L50 18 L90 6"
+        d="M8 8 L50 32 L92 8"
         stroke="currentColor"
-        stroke-width="3"
+        stroke-width="8"
         fill="none"
         stroke-linecap="round"
       />
@@ -23,34 +23,33 @@
 
 <style>
   .scroll-indicator {
-    margin-top: 3.8rem;
+    margin-top: 16rem;
     display: inline-flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 2px;
     border: none;
     background: transparent;
     padding: 0;
     cursor: pointer;
-    color: #b3b3b3;
     user-select: none;
+    align-items: center;
   }
 
   .chevron {
-    width: 80px; /* T V I N G bredde */
-    height: 24px;
+    width: 20px;
+    height: 10px;
     flex-shrink: 0;
-    animation: pulse 2.4s infinite ease-in-out;
   }
 
-  @keyframes pulse {
-    0% {
-      color: #c0c0c0;
-    }
-    50% {
-      color: #4a4a4a;
-    }
-    100% {
-      color: #c0c0c0;
-    }
+  .chevron-0 {
+    color: #bfbfbf; /* lys */
+  }
+
+  .chevron-1 {
+    color: #8a8a8f; /* medium */
+  }
+
+  .chevron-2 {
+    color: #3a3a3d; /* mørk */
   }
 </style>
