@@ -10,3 +10,10 @@ coverage
 **/.svelte-kit
 **/.vite
 **/.turbo
+terraform/**/*.tfstate
+terraform/**/*.tfstate.backup
+terraform/**/.terraform/
+
+# M+E (Can be removed later when less lazy)
+apps/web/public/img/logo_with_date.png
+apps/web/public/img/hero.jpg
