@@ -10,8 +10,11 @@
     addPerson,
     updatePerson,
     deletePerson,
+    type Person,
+    type PersonRoles,
+    type RsvpStatus,
   } from "../lib/api";
-  import type { Person, PersonRole, RsvpStatus } from "../lib/api";
+  import { generateInviteCode } from "../lib/helpers";
 
   type AgendaItem = {
     id: number;
@@ -150,12 +153,15 @@
     roles: ["GUEST"],
     rsvp: "NO",
     saveTheDateSent: false,
+    invitationCode: generateInviteCode(),
   };
   let savingPerson = false;
   let personError = "";
+
   async function loadPersons() {
     persons = await listPersons();
   }
+
   async function submitPersonForm() {
     personError = "";
     if (!personForm.firstName || !personForm.lastName || !personForm.email) {
@@ -195,7 +201,7 @@
     editPerson = {};
   }
 
-  function toggleEditRole(role: PersonRole) {
+  function toggleEditRole(role: PersonRoles) {
     editPerson.roles = editPerson.roles || [];
     if (editPerson.roles.includes(role)) {
       editPerson.roles = editPerson.roles.filter((r) => r !== role);
@@ -220,20 +226,22 @@
     await deletePerson(id);
     await loadPersons();
   }
-  function toggleRole(role: PersonRole) {
+
+  function toggleRole(role: PersonRoles[number]) {
     personForm.roles = personForm.roles || [];
     if (personForm.roles.includes(role))
       personForm.roles = personForm.roles.filter((r) => r !== role);
     else personForm.roles = [...personForm.roles, role];
   }
-  const roles: { label: string; value: PersonRole }[] = [
+
+  const roles: { label: string; value: PersonRoles[number] }[] = [
     { label: "Gjest", value: "GUEST" },
     { label: "Toastmaster", value: "TOASTMASTER" },
     { label: "Hedersperson", value: "PERSON_OF_HONOR" },
     { label: "Forelder", value: "PARENT" },
     { label: "Leverandør", value: "VENDOR" },
   ];
-  const rsvpOpts: { label: string; value: RsvpStatus }[] = [
+  const rsvpOpts: { label: string; value: RsvpStatus[number] }[] = [
     { label: "Kommer", value: "YES" },
     { label: "Kommer ikke", value: "NO" },
   ];
@@ -251,184 +259,259 @@
   <!-- Gjesteliste/Persons panel -->
   <div class="panel">
     <h2>Gjesteliste</h2>
+
     <form
-      class="row add"
+      class="person-form"
       on:submit|preventDefault={submitPersonForm}
       autocomplete="off"
     >
-      <input
-        placeholder="Fornavn"
-        bind:value={personForm.firstName}
-        required
-        size="8"
-      />
-      <input
-        placeholder="Etternavn"
-        bind:value={personForm.lastName}
-        required
-        size="10"
-      />
-      <input
-        placeholder="E-post"
-        bind:value={personForm.email}
-        required
-        size="14"
-      />
-      <input placeholder="Telefon" bind:value={personForm.phone} size="10" />
-      <input placeholder="Tittel" bind:value={personForm.title} size="10" />
-      <input
-        placeholder="Kode"
-        bind:value={personForm.invitationCode}
-        size="8"
-      />
-      <input
-        placeholder="Adresse 1"
-        bind:value={personForm.addressLine1}
-        size="12"
-      />
-      <input placeholder="Postnr" bind:value={personForm.zipcode} size="5" />
-      <input placeholder="Sted" bind:value={personForm.city} size="10" />
-      <input placeholder="Land" bind:value={personForm.country} size="8" />
-      <select bind:value={personForm.rsvp}>
-        <option value="NO">RSVP?</option>
-        {#each rsvpOpts as o}
-          <option value={o.value}>{o.label}</option>
-        {/each}
-      </select>
-      <label>
-        <input type="checkbox" bind:checked={personForm.saveTheDateSent} /> Save-the-date
-        sendt
-      </label>
-      <div style="min-width: 130px">
-        {#each roles as r}
-          <label style="margin:0 4px 0 0;font-weight:400;font-size:12px;">
-            <input
-              type="checkbox"
-              value={r.value}
-              checked={personForm.roles && personForm.roles.includes(r.value)}
-              on:change={() => toggleRole(r.value)}
-            />
-            {r.label}
-          </label>
-        {/each}
+      <div class="field-row">
+        <div class="field">
+          <label>Fornavn</label>
+          <input
+            placeholder="Fornavn"
+            bind:value={personForm.firstName}
+            required
+          />
+        </div>
+        <div class="field">
+          <label>Etternavn</label>
+          <input
+            placeholder="Etternavn"
+            bind:value={personForm.lastName}
+            required
+          />
+        </div>
+        <div class="field">
+          <label>E-post</label>
+          <input
+            placeholder="E-post"
+            type="email"
+            bind:value={personForm.email}
+            required
+          />
+        </div>
       </div>
-      <button type="submit" disabled={savingPerson}>Legg til</button>
-    </form>
-    {#if personError}<div class="error">{personError}</div>{/if}
 
-    <table style="margin-top: 1.2rem; width: 100%; border-collapse: collapse">
-      <thead>
-        <tr style="background: #f7fbf9">
-          <th>Navn</th><th>E-post</th><th>Tlf</th><th>Tittel</th><th>Kode</th>
-          <th>Adresse</th><th>RSVP</th><th>Save-Date</th><th>Roller</th><th
-          ></th>
-        </tr>
-      </thead>
-      <tbody>
-        {#each persons as person (person.id)}
-          {#if editingId === person.id}
-            <tr>
-              <td>
-                <input bind:value={editPerson.firstName} size="7" required />
-                <input bind:value={editPerson.lastName} size="8" required />
-              </td>
-              <td><input bind:value={editPerson.email} size="14" required /></td
-              >
-              <td><input bind:value={editPerson.phone} size="8" /></td>
-              <td><input bind:value={editPerson.title} size="8" /></td>
-              <td><input bind:value={editPerson.invitationCode} size="8" /></td>
-              <td>
-                <input
-                  bind:value={editPerson.addressLine1}
-                  placeholder="Adresse 1"
-                  size="11"
-                />
-                <input
-                  bind:value={editPerson.zipcode}
-                  placeholder="Postnr"
-                  size="5"
-                />
-                <input
-                  bind:value={editPerson.city}
-                  placeholder="Sted"
-                  size="8"
-                />
-                <input
-                  bind:value={editPerson.country}
-                  placeholder="Land"
-                  size="7"
-                />
-              </td>
-              <td>
-                <select bind:value={editPerson.rsvp}>
-                  {#each rsvpOpts as o}
-                    <option value={o.value}>{o.label}</option>
-                  {/each}
-                </select>
-              </td>
-              <td>
-                <input
-                  type="checkbox"
-                  bind:checked={editPerson.saveTheDateSent}
-                /> Sendt
-              </td>
-              <td>
-                {#each roles as r}
-                  <label style="margin: 0 4px 0 0; font-size:11px;">
+      <div class="field-row">
+        <div class="field">
+          <label>Telefon</label>
+          <input placeholder="Telefon" bind:value={personForm.phone} />
+        </div>
+        <div class="field">
+          <label>Tittel (på invitasjon)</label>
+          <input placeholder="Guest" bind:value={personForm.title} />
+        </div>
+        <div class="field">
+          <label>Invitasjonskode</label>
+          <input bind:value={personForm.invitationCode} />
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Adresse 1</label>
+          <input placeholder="Adresse 1" bind:value={personForm.addressLine1} />
+        </div>
+        <div class="field field-sm">
+          <label>Postnr</label>
+          <input placeholder="Postnr" bind:value={personForm.zipcode} />
+        </div>
+        <div class="field field-sm">
+          <label>Sted</label>
+          <input placeholder="Sted" bind:value={personForm.city} />
+        </div>
+        <div class="field field-sm">
+          <label>Land</label>
+          <input placeholder="Land" bind:value={personForm.country} />
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>RSVP</label>
+          <select bind:value={personForm.rsvp}>
+            <option value="NO">RSVP?</option>
+            {#each rsvpOpts as o}
+              <option value={o.value}>{o.label}</option>
+            {/each}
+          </select>
+        </div>
+        <div class="field checkbox-field">
+          <label>
+            <input type="checkbox" bind:checked={personForm.saveTheDateSent} />
+            <span>Save-the-date sendt</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Roller</label>
+        <div class="chip-row">
+          {#each roles as r}
+            <label class="chip">
+              <input
+                type="checkbox"
+                value={r.value}
+                checked={personForm.roles && personForm.roles.includes(r.value)}
+                on:change={() => toggleRole(r.value)}
+              />
+              <span>{r.label}</span>
+            </label>
+          {/each}
+        </div>
+      </div>
+
+      {#if personError}
+        <div class="error">{personError}</div>
+      {/if}
+
+      <div class="person-form-actions">
+        <button type="submit" disabled={savingPerson}>
+          {savingPerson ? "Lagrer..." : "Legg til person"}
+        </button>
+      </div>
+    </form>
+
+    <div class="person-list">
+      <table class="person-table">
+        <thead>
+          <tr>
+            <th>Navn</th>
+            <th>E-post</th>
+            <th>Tlf</th>
+            <th>Tittel</th>
+            <th>Kode</th>
+            <th>Adresse</th>
+            <th>RSVP</th>
+            <th>Save-date</th>
+            <th>Roller</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each persons as person (person.id)}
+            {#if editingId === person.id}
+              <tr class="editing-row">
+                <td>
+                  <input bind:value={editPerson.firstName} required />
+                  <input bind:value={editPerson.lastName} required />
+                </td>
+                <td>
+                  <input bind:value={editPerson.email} required />
+                </td>
+                <td>
+                  <input bind:value={editPerson.phone} />
+                </td>
+                <td>
+                  <input bind:value={editPerson.title} />
+                </td>
+                <td>
+                  <input bind:value={editPerson.invitationCode} />
+                </td>
+                <td class="address-cell">
+                  <input
+                    bind:value={editPerson.addressLine1}
+                    placeholder="Adresse 1"
+                  />
+                  <div class="address-row">
+                    <input
+                      bind:value={editPerson.zipcode}
+                      placeholder="Postnr"
+                    />
+                    <input bind:value={editPerson.city} placeholder="Sted" />
+                    <input bind:value={editPerson.country} placeholder="Land" />
+                  </div>
+                </td>
+                <td>
+                  <select bind:value={editPerson.rsvp}>
+                    {#each rsvpOpts as o}
+                      <option value={o.value}>{o.label}</option>
+                    {/each}
+                  </select>
+                </td>
+                <td class="center">
+                  <label class="inline-checkbox">
                     <input
                       type="checkbox"
-                      value={r.value}
-                      checked={editPerson.roles &&
-                        editPerson.roles.includes(r.value)}
-                      on:change={() => toggleEditRole(r.value)}
-                    />{r.label}
+                      bind:checked={editPerson.saveTheDateSent}
+                    />
+                    <span>Sendt</span>
                   </label>
-                {/each}
-              </td>
-              <td>
-                <button class="ghost" on:click={() => saveEditPerson(person.id)}
-                  >Lagre</button
-                >
-                <button class="ghost" on:click={cancelEdit}>Avbryt</button>
-              </td>
-            </tr>
-          {:else}
-            <tr>
-              <td>{person.firstName} {person.lastName}</td>
-              <td>{person.email}</td>
-              <td>{person.phone}</td>
-              <td>{person.title}</td>
-              <td>{person.invitationCode}</td>
-              <td>
-                {person.addressLine1}, {person.zipcode}
-                {person.city}
-                {person.country}
-              </td>
-              <td>{person.rsvp === "YES" ? "Ja" : "Nei"}</td>
-              <td>{person.saveTheDateSent ? "Ja" : "Nei"}</td>
-              <td>
-                {person.roles &&
-                  person.roles
-                    .map((r) => roles.find((x) => x.value === r)?.label)
-                    .join(", ")}
-              </td>
-              <td>
-                <button
-                  class="ghost"
-                  title="Rediger"
-                  on:click={() => startEdit(person)}>✎</button
-                >
-                <button
-                  class="danger"
-                  title="Slett"
-                  on:click={() => doDeletePerson(person.id)}>✕</button
-                >
-              </td>
-            </tr>
-          {/if}
-        {/each}
-      </tbody>
-    </table>
+                </td>
+                <td>
+                  <div class="chip-column">
+                    {#each roles as r}
+                      <label class="chip chip-sm">
+                        <input
+                          type="checkbox"
+                          value={r.value}
+                          checked={editPerson.roles &&
+                            editPerson.roles.includes(r.value)}
+                          on:change={() => toggleEditRole(r.value)}
+                        />
+                        <span>{r.label}</span>
+                      </label>
+                    {/each}
+                  </div>
+                </td>
+                <td class="actions">
+                  <button
+                    class="ghost"
+                    type="button"
+                    on:click={() => saveEditPerson(person.id)}
+                  >
+                    Lagre
+                  </button>
+                  <button class="ghost" type="button" on:click={cancelEdit}>
+                    Avbryt
+                  </button>
+                </td>
+              </tr>
+            {:else}
+              <tr>
+                <td>{person.firstName} {person.lastName}</td>
+                <td>{person.email}</td>
+                <td>{person.phone}</td>
+                <td>{person.title}</td>
+                <td>{person.invitationCode}</td>
+                <td>
+                  {person.addressLine1}, {person.zipcode}
+                  {person.city},{" "}
+                  {person.country}
+                </td>
+                <td>{person.rsvp === "YES" ? "Ja" : "Nei"}</td>
+                <td>{person.saveTheDateSent ? "Ja" : "Nei"}</td>
+                <td>
+                  {person.roles &&
+                    person.roles
+                      .map((r) => roles.find((x) => x.value === r)?.label)
+                      .join(", ")}
+                </td>
+                <td class="actions">
+                  <button
+                    class="ghost"
+                    type="button"
+                    title="Rediger"
+                    on:click={() => startEdit(person)}
+                  >
+                    ✎
+                  </button>
+                  <button
+                    class="danger"
+                    type="button"
+                    title="Slett"
+                    on:click={() => doDeletePerson(person.id)}
+                  >
+                    ✕
+                  </button>
+                </td>
+              </tr>
+            {/if}
+          {/each}
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <div class="panel">
@@ -441,7 +524,9 @@
       />
       <div class="form-actions">
         <span class="muted">{postText.length}/280</span>
-        <button on:click={addPost} disabled={!postText.trim()}>Publiser</button>
+        <button on:click={addPost} disabled={!postText.trim()}>
+          Publiser
+        </button>
       </div>
     </div>
 
@@ -449,7 +534,9 @@
       {#each $posts as p (p.id)}
         <li>
           <p>{p.text}</p>
-          <small class="muted">{new Date(p.createdAt).toLocaleString()}</small>
+          <small class="muted">
+            {new Date(p.createdAt).toLocaleString()}
+          </small>
         </li>
       {/each}
     </ul>
@@ -506,21 +593,23 @@
     margin: 2rem auto;
     padding: 0 1rem;
   }
+
   h1 {
     font-size: 1.6rem;
     margin-bottom: 1rem;
   }
+
   h2 {
     font-size: 1.2rem;
-    margin: 1rem 0 0.5rem;
+    margin: 1rem 0 0.75rem;
   }
 
   .panel {
     background: #fff;
     border: 1px solid #e8ece8;
-    border-radius: 12px;
-    padding: 1rem;
-    margin-bottom: 1.5rem;
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem 1.5rem;
+    margin-bottom: 1.75rem;
   }
 
   .panel-head {
@@ -530,51 +619,216 @@
     gap: 1rem;
     flex-wrap: wrap;
   }
+
   .panel-actions {
     display: flex;
     gap: 0.5rem;
     align-items: center;
   }
 
-  .list {
-    display: grid;
-    gap: 0.5rem;
-  }
-  .row {
-    display: grid;
-    grid-template-columns: 90px 1fr 1.2fr auto auto auto;
-    gap: 0.5rem;
-    align-items: center;
-  }
-  .row input {
-    padding: 0.5rem 0.6rem;
-    border: 1px solid #e0e4e0;
-    border-radius: 8px;
-  }
-  .row.add {
-    margin-top: 0.75rem;
+  /* -------- Gjesteliste: form -------- */
+
+  .person-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    margin-bottom: 1.25rem;
   }
 
-  button {
-    padding: 0.5rem 0.75rem;
+  .field-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .field-sm {
+    max-width: 140px;
+  }
+
+  .field label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #555;
+  }
+
+  .field input,
+  .field select {
+    padding: 0.45rem 0.6rem;
+    border-radius: 10px;
+    border: 1px solid #e0e4e0;
+    font-size: 0.9rem;
+    background: #fdfdfd;
+  }
+
+  .field input:focus,
+  .field select:focus {
+    outline: none;
+    border-color: #2f6f5e;
+    box-shadow: 0 0 0 1px rgba(47, 111, 94, 0.15);
+  }
+
+  .checkbox-field {
+    justify-content: flex-end;
+  }
+
+  .checkbox-field label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    font-weight: 400;
+  }
+
+  .checkbox-field input {
+    width: auto;
+  }
+
+  .chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid #dbe5df;
+    background: #f5faf7;
+    font-size: 0.8rem;
+  }
+
+  .chip input {
+    width: auto;
+    margin: 0;
+  }
+
+  .chip-sm {
+    padding: 0.1rem 0.45rem;
+    font-size: 0.75rem;
+  }
+
+  .person-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.25rem;
+  }
+
+  /* -------- Gjesteliste: tabell -------- */
+
+  .person-list {
+    margin-top: 0.5rem;
+    overflow-x: auto;
+  }
+
+  .person-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+
+  .person-table th,
+  .person-table td {
+    padding: 0.5rem 0.4rem;
+    border-bottom: 1px solid #eef1ee;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .person-table th {
+    background: #f7fbf9;
+    font-weight: 600;
+    color: #555;
+  }
+
+  .person-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .person-table input,
+  .person-table select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.35rem 0.5rem;
     border-radius: 8px;
+    border: 1px solid #e0e4e0;
+    font-size: 0.85rem;
+  }
+
+  .address-cell input {
+    margin-bottom: 0.25rem;
+  }
+
+  .address-row {
+    display: flex;
+    gap: 0.3rem;
+  }
+
+  .address-row input {
+    flex: 1;
+  }
+
+  .chip-column {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .inline-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+  }
+
+  .actions {
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  .center {
+    text-align: center;
+  }
+
+  .editing-row {
+    background: #fbfdfc;
+  }
+
+  /* -------- Felles UI -------- */
+
+  button {
+    padding: 0.5rem 0.9rem;
+    border-radius: 999px;
     border: 0;
     background: #2f6f5e;
     color: #fff;
     cursor: pointer;
+    font-size: 0.9rem;
   }
+
   button.ghost {
     background: #eef4f1;
     color: #2f6f5e;
   }
+
   button.danger {
     background: #dc4b4b;
   }
 
+  button:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
   select {
-    padding: 0.45rem 0.6rem;
-    border: 1px solid #e0e4e0;
-    border-radius: 8px;
     background: #fff;
   }
 
@@ -585,6 +839,7 @@
     border-radius: 8px;
     resize: vertical;
   }
+
   .form-actions {
     display: flex;
     justify-content: space-between;
@@ -599,6 +854,7 @@
     display: grid;
     gap: 0.5rem;
   }
+
   .posts li {
     background: #f7fbf9;
     border: 1px solid #e8ece8;
@@ -609,11 +865,13 @@
   .muted {
     color: #6e756f;
   }
+
   .hint {
     margin-top: 0.35rem;
     color: #2f6f5e;
     font-size: 0.9rem;
   }
+
   .error {
     margin-top: 0.35rem;
     color: #dc4b4b;
@@ -626,9 +884,27 @@
     justify-content: flex-end;
   }
 
-  @media (max-width: 760px) {
-    .row {
-      grid-template-columns: 70px 1fr 1fr auto auto auto;
+  @media (max-width: 900px) {
+    .field-row {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 640px) {
+    .field-row {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .field-sm {
+      max-width: none;
+    }
+
+    .address-row {
+      flex-direction: column;
+    }
+
+    .actions {
+      white-space: normal;
     }
   }
 </style>

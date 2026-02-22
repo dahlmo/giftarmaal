@@ -1,39 +1,41 @@
 <script lang="ts">
+  import type { Person } from "../../src/lib/api";
   import Template from "../lib/Template.svelte";
   import { onMount } from "svelte";
 
-  type Contact = {
-    id: number;
-    name: string;
-    role: string;
-    phone: string;
-    email: string;
-    image: string;
-  };
-
-  const fallbackContact: Contact = {
-    id: -1,
-    name: "N/A",
-    role: "N/A",
-    phone: "+4799999999",
-    email: "na@example.com",
-    image:
-      "https://placehold.co/600x400/CCC/31343C?font=montserrat&text=(Bilde)",
-  };
-
-  let contacts: Contact[] = [];
+  let contacts: Person[] = [];
   let loading = true;
   let error: string | null = null;
+
+  const fallbackContact: Person = {
+    id: '123-123-123',
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone?: '99999999',
+    invitationCode: '',
+    addressLine1: '',
+    zipcode: '',
+    city: 'string',
+    country: 'string',
+    title: 'string',
+    roles: ['PERSON_OF_HONOR'],
+    rsvp: 'YES',
+    saveTheDateSent: true,
+    createdAt: 'string',
+    updatedAt: 'string',
+  };
 
   onMount(async () => {
     loading = true;
     error = null;
 
     try {
-      const res = await fetch("/api/contact");
+      const res = await fetch("/api/persons");
       if (!res.ok) throw new Error("Kunne ikke hente kontaktliste.");
       const data = await res.json();
-      contacts = data.items ?? [];
+      contacts = data.persons ?? [];
+      console.debug({ contacts });
     } catch (e) {
       error = e instanceof Error ? e.message : "Ukjent feil";
       contacts = [];
@@ -45,12 +47,12 @@
   const phoneSvg = `<svg viewBox="0 0 24 24" fill="none"><path d="M7.2 3.8c.8-1 2.3-1 3.1 0l1.3 1.6c.6.8.6 1.9-.1 2.6l-1 1c1 1.9 2.5 3.4 4.4 4.4l1-1c.7-.7 1.8-.7 2.6-.1l1.6 1.3c1 .8 1 2.3 0 3.1l-.9.8c-.9.9-2.2 1.2-3.4.8-6.2-2.1-11-6.9-13.1-13.1-.4-1.2-.1-2.5.8-3.4l.8-.9z" fill="currentColor"/></svg>`;
   const mailSvg = `<svg viewBox="0 0 24 24" fill="none"><path d="M4.5 7.5A2.5 2.5 0 0 1 7 5h10a2.5 2.5 0 0 1 2.5 2.5v9A2.5 2.5 0 0 1 17 19H7a2.5 2.5 0 0 1-2.5-2.5v-9z" stroke="currentColor" stroke-width="1.6"/><path d="M6.2 8.2 12 12.4l5.8-4.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
-  const coupleRoles = ["brud", "brudgom"];
-
-  $: coupleList = contacts.filter((c) => coupleRoles.includes(c.role));
-  $: forlovereList = contacts.filter((c) => c.role === "forlover");
+  $: coupleList = contacts.filter((c) => c.roles.includes("GROOM") || c.roles.includes("BRIDE"));
+  $: forlovereList = contacts.filter((c) =>
+    c.roles.includes("PERSON_OF_HONOR"),
+  );
   $: toastmasterContact =
-    contacts.find((c) => c.role === "toastmaster") ?? null;
+    contacts.find((c) => c.roles.includes("TOASTMASTER")) ?? null;
 
   // Vis fallback i UI hvis API returnerer tomt for forlovere
   $: forlovereUi = forlovereList.length ? forlovereList : [fallbackContact];
@@ -65,7 +67,7 @@
   <main class="page">
     <div class="wrap">
       <section class="intro">
-        <h1 class="page-title">KONTAKT (Ikke ferdig!)</h1>
+        <h1 class="page-title">KONTAKT</h1>
       </section>
 
       {#if loading}
@@ -77,7 +79,7 @@
         <section class="top-grid" aria-label="Kontaktinformasjon">
           {#each coupleList as p (p.id)}
             <div class="contact-card">
-              <h2 class="name">{p.name}</h2>
+              <h2 class="name">{p.firstName}</h2>
 
               <div class="lines">
                 {#if p.phone}
@@ -116,12 +118,12 @@
                   <img
                     class="avatar"
                     src={p.image}
-                    alt={p.name}
+                    alt={p.firstName}
                     loading="lazy"
                   />
                 {/if}
 
-                <div class="person-name">{p.name}</div>
+                <div class="person-name">{p.firstName}</div>
 
                 <div class="mini-lines">
                   {#if p.phone}
@@ -163,12 +165,14 @@
                 <img
                   class="avatar lg"
                   src={toastmasterContact.image}
-                  alt={toastmasterContact.name}
+                  alt={toastmasterContact.firstName}
                   loading="lazy"
                 />
               {/if}
 
-              <div class="person-name">{toastmasterContact.name}</div>
+              <div class="person-name">
+                {toastmasterContact.firstName}
+              </div>
 
               <div class="mini-lines">
                 {#if toastmasterContact.phone}

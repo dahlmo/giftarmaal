@@ -81,8 +81,9 @@ enum PersonRole {
   GUEST
   TOASTMASTER
   PERSON_OF_HONOR
-  PARENT
   VENDOR
+  GROOM
+  BRIDE
 }
 
 enum RsvpStatus {
