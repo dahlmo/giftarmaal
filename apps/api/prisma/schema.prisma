@@ -73,6 +73,8 @@ model Person {
   roles           PersonRole[]
   rsvp            RsvpStatus @default(NO)
   saveTheDateSent Boolean     @default(false)
+  imagePath       String?
+  thumbPath       String?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 }

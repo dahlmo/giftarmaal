@@ -72,6 +72,8 @@ CREATE TABLE "Person" (
     "roles" "PersonRole"[],
     "rsvp" "RsvpStatus" NOT NULL DEFAULT 'NO',
     "saveTheDateSent" BOOLEAN NOT NULL DEFAULT false,
+    "imagePath" TEXT,
+    "thumbPath" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

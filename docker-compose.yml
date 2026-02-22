@@ -24,6 +24,7 @@ services:
     volumes:
       - ./apps/api:/app
       - /app/node_modules
+      - ./uploads:/data/uploads
     depends_on:
       db:
         condition: service_healthy
