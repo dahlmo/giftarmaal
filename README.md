@@ -15,69 +15,107 @@ _Svelte frontend · NestJS backend · PostgreSQL_
 
 ## ✨ What is Giftarmaal?
 
-**Giftarmaal** is a modern, self-hostable wedding website boilerplate with batteries included. Can be set up with a simple makefile command and hosted via any Docker-compliant hosting service. Or on a Raspberry Pi in your closet at home.
+**Giftarmaal** is a modern, self-hostable wedding website boilerplate with batteries included.  
+It can be deployed with a simple Makefile command and hosted on any Docker-compliant platform — or even on a Raspberry Pi in a closet at home.
 
-Motivation was to have a simple boilerplate for others to get up and running with a nice wedding website with just the amount of adaptability that you might need. The design is pretty much just simple Svelte files with inline scripts/HTML but with a Template.svelte as well that helps you reduce duplication. _Content_ is served directly via the database in set building blocks that allow you to customize the _content_ but _not_ the design – which is a deliberate design choice.
+The motivation behind the project is to give couples (and developers) a clean, extensible starting point for their wedding website.  
+The design uses simple Svelte components with inline HTML/scripts, plus a shared `Template.svelte` to avoid duplication.
 
-To allow for extensibility there's three data domains;
+**Content** is stored in the database as structured blocks, giving you full control over _content_ while intentionally not letting you break the _design_.  
+That’s deliberate — flexibility where it matters, consistency where it counts.
 
-1. Persons
+To support extensibility, the system is built around three core domains:
 
-Any person that has _something_ to do with the wedding, is a part of this. Most are "guests" that make it to the _guest list_ while you can promote the guests to _toast master_, and hey – even _bride_ and _groom_. This allows for nice upcoming features such as PDF-export for guest lists, thank-you-cards and emergency contacts etc. as well as it gives you a nice online contact book during the preparations and the actual wedding day.
+---
 
-2. ContentBlock
+## 📚 Core Data Domains
 
-Is where your content lives, divided in structured blocks that you define via the admin page currently hosted at `/handtere` (to be changed). The frontend checks for blocks and will iterate through the blocks and show sections, blocks and even nested sections of your data that you can define via the `SimpleWysiwyg` editor.
+### 1. 👥 Persons
 
-3. Message
+Anyone connected to the wedding belongs here: guests, toastmasters, bride/groom, vendors.  
+Promote or assign roles to allow:
 
-Any wedding is full of surprises, and one of the main motivtions for the project was to have some simple way of informing guests about any relevant changes. Sort of like "tweets" but without having to ask guests to use X. This is currently not shown anywhere, but this might be a basis for upcoming notifcations both on the website, via Push and/or E-mail. Let's see.
+- Guest list exports
+- Thank-you card lists
+- Emergency contact sheets
+- “Who’s who” directory
+- Future features (email, push, PDF exports)
+
+---
+
+### 2. 📦 ContentBlock
+
+Where all page content lives.  
+Managed through an admin UI at `/handtere` (temporary).
+
+Blocks can be:
+
+- Sections
+- Headings
+- WYSIWYG text
+- Grids
+- Nested blocks
+
+The frontend simply loops through them and renders with pre-defined Svelte components.
+
+---
+
+### 3. 🐦 Message
+
+A lightweight feed for quick wedding updates — like tweets, but without asking guests to join X.
+
+Not yet surfaced in the UI, but intended for:
+
+- Last-minute notifications
+- Weather updates
+- Transportation info
+- Push / email integrations (future)
 
 ---
 
 ## 🏗️ Tech Stack
 
-- ✅ **Svelte** for fast, elegant UI
-- ✅ **NestJS** for a modular, maintainable backend
-- ✅ **PostgreSQL** as the single source of truth
-- ✅ **SSE (Server-Sent Events)** for live updates
-- ✅ **Docker-first** for predictable environments
+- ✅ **Svelte** — fast, elegant UI
+- ✅ **NestJS** — modular backend
+- ✅ **PostgreSQL** — single source of truth
+- ✅ **SSE (Server-Sent Events)** — realtime updates
+- ✅ **Docker-first** — predictable, portable, reproducible
 
 ### Frontend
 
-- 🧡 **Svelte** (no SvelteKit required)
-- ⚡ Vite build tool / dev server
-- 🗺️ Leaflet + OSM (no API keys) for mapping
+- 🧡 Svelte (no SvelteKit required)
+- ⚡ Vite dev server
+- 🗺️ Leaflet + OSM maps (no API keys)
 
 ### Backend
 
-- 🐦 **NestJS**
-- 🔁 Server-Sent Events (SSE) for realtime updates
-- 🧩 Modular architecture (features, not spaghetti)
+- 🐦 NestJS
+- 🔁 Server-Sent Events (SSE)
+- 🧩 Feature-oriented module structure
 - 🗄️ PostgreSQL
 
 ### Infra
 
-- 🐳 Docker / Docker Compose
+- 🐳 Docker & Docker Compose
 - 🛠️ pnpm
-- 🧪 Ready for Fly.io / VPS / home server
+- 🧪 Suitable for Fly.io, VPS, or home server
 
 ---
 
 ## 🚀 Features (Current & Planned)
 
-- 🖼️ Hero section with photo
+- 🖼️ Full-bleed hero section
 - 🕰️ Wedding program timeline
-- 📸 Upload pictures of your guests
-- 📋 Guest list management w/multiple roles
-- 📨 RSVP (code-based invitations) (halfway)
+- 📸 Guest profile images (upload via admin)
+- 📋 Guest management w/ roles
+- 📨 RSVP via invitation codes (in progress)
 - ⚡ Live updates via SSE
 
 ### Admin (work in progress)
 
 - 🛠️ Edit program & locations
-- 📸 Upload & manage images (coming)
-- 👥 Manage guest list (coming)
+- 📸 Manage images
+- 👥 Manage guest list
 - 🔐 Simple auth (no OAuth madness) (coming)
 
 ---
@@ -94,13 +132,13 @@ packages/
 
 ## Howto?
 
-# Init Prisma and Generate Client
+### Init Prisma and Generate Client
 
 ```console
 docker compose exec api sh -lc "cd /app && npx -y pnpm@9.12.2 pnpm --filter api exec prisma migrate dev --name init"
 ```
 
-# Run migrations
+### Run migrations
 
 ```console
 docker compose exec api sh -lc "cd /app && npx -y pnpm@9.12.2 pnpm prisma migrate deploy"
