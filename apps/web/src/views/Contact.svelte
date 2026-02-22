@@ -77,6 +77,7 @@
       {:else}
         <!-- PAR -->
         <section class="top-grid" aria-label="Kontaktinformasjon">
+          {console.log("p:", p)}
           {#each coupleList as p (p.id)}
             <div class="contact-card">
               <h2 class="name">{p.friendlyName}</h2>
