@@ -61,8 +61,7 @@
 
   .cover-inner {
     text-align: center;
-    padding: 5rem 1rem 3rem;
-    margin-top: 64px;
+    padding: 0rem 1rem 3rem;
   }
 
   .logo {
