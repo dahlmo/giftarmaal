@@ -9,6 +9,12 @@ import {
 } from "@nestjs/common";
 import type { Response, Request } from "express";
 import { PrismaService } from "./prisma";
+import {
+  clearFailures,
+  getClientIp,
+  isBlocked,
+  registerFailure,
+} from "./helpers/fail2ban";
 
 @Controller("api/auth")
 export class AuthController {
@@ -17,16 +23,33 @@ export class AuthController {
   @Post("login")
   async login(
     @Body("invitationCode") invitationCode: string,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
+    const ip = getClientIp(req);
+
+    if (isBlocked(ip)) {
+      throw new UnauthorizedException(
+        "For mange mislykkede forsøk. Prøv igjen senere.",
+      );
+    }
+
     const code = (invitationCode || "").trim();
-    if (!code) throw new UnauthorizedException("Mangler invitasjonskode");
+    if (!code) {
+      registerFailure(ip);
+      throw new UnauthorizedException("Mangler invitasjonskode");
+    }
 
     const persons = await this.prisma.person.findMany({
       where: { invitationCode: code },
     });
-    if (!persons.length)
+
+    if (!persons.length) {
+      registerFailure(ip);
       throw new UnauthorizedException("Fant ikke invitasjonskode");
+    }
+
+    clearFailures(ip);
 
     res.cookie("invitationCode", code, {
       httpOnly: false,
