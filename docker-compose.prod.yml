@@ -38,7 +38,7 @@ services:
       DATABASE_URL: postgresql://app:app@db:5432/app
       PORT: 3001
     volumes:
-      - api-uploads:/opt/uploads
+      - media:/opt/media
     depends_on:
       db:
         condition: service_healthy
@@ -50,4 +50,4 @@ volumes:
   db-data:
   caddy-data:
   caddy-config:
-  api-uploads:
+  media:
