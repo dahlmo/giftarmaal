@@ -144,7 +144,7 @@ export class PersonsController {
     const person = await this.prisma.person.findUnique({ where: { id } });
     if (!person) throw new NotFoundException("Person not found");
 
-    const uploadDir = "/opt/uploads";
+    const uploadDir = "/data/uploads";
     const filename =
       size === "thumb" ? `person-${id}-thumb.jpg` : `person-${id}-full.jpg`;
     const filePath = path.join(uploadDir, filename);

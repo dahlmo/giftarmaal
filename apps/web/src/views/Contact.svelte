@@ -3,6 +3,8 @@
   import Template from "../lib/Template.svelte";
   import { onMount } from "svelte";
 
+  export let title = "KONTAKT";
+
   let contacts: Person[] = [];
   let loading = true;
   let error: string | null = null;
@@ -33,11 +35,10 @@
     error = null;
 
     try {
-      const res = await fetch("/api/persons");
+      const res = await fetch("/api/persons", { credentials: "include" });
       if (!res.ok) throw new Error("Kunne ikke hente kontaktliste.");
       const data = await res.json();
       contacts = data.persons ?? [];
-      console.debug({ contacts });
     } catch (e) {
       error = e instanceof Error ? e.message : "Ukjent feil";
       contacts = [];
@@ -55,8 +56,6 @@
   );
   $: toastmasterContact =
     contacts.find((c) => c.roles.includes("TOASTMASTER")) ?? null;
-
-  // Vis fallback i UI hvis API returnerer tomt for forlovere
   $: forlovereUi = forlovereList.length ? forlovereList : [fallbackContact];
 </script>
 
@@ -69,7 +68,7 @@
   <main class="page">
     <div class="wrap">
       <section class="intro">
-        <h1 class="page-title">KONTAKT</h1>
+        <h1 class="page-title">{title}</h1>
       </section>
 
       {#if loading}
@@ -77,7 +76,6 @@
       {:else if error}
         <div class="error">{error}</div>
       {:else}
-        <!-- PAR -->
         <section class="top-grid" aria-label="Kontaktinformasjon">
           {#each coupleList as p (p.id)}
             <div class="contact-card">
@@ -87,12 +85,11 @@
                   <div class="line">
                     <span class="icon" aria-hidden="true">{@html phoneSvg}</span
                     >
-                    <a class="link" href={"tel:" + p.phone.replace(/\s/g, "")}
-                      >{p.phone}</a
-                    >
+                    <a class="link" href={"tel:" + p.phone.replace(/\s/g, "")}>
+                      {p.phone}
+                    </a>
                   </div>
                 {/if}
-
                 {#if p.email}
                   <div class="line">
                     <span class="icon" aria-hidden="true">{@html mailSvg}</span>
@@ -104,14 +101,12 @@
           {/each}
         </section>
 
-        <!-- FORLOVERE -->
         <section class="block">
           <h2 class="section-title"><span>FORLOVERE</span></h2>
           <p class="sub">
             For spørsmål rundt utdrikningslag, overraskelser og praktiske
             detaljer
           </p>
-
           <div class="people-grid">
             {#each forlovereUi as p (p.id)}
               <div class="person">
@@ -123,21 +118,21 @@
                     loading="lazy"
                   />
                 {/if}
-
                 <div class="person-name">{p.friendlyName}</div>
-
                 <div class="mini-lines">
                   {#if p.phone}
                     <div class="mini-line">
                       <span class="icon sm" aria-hidden="true"
                         >{@html phoneSvg}</span
                       >
-                      <a class="link" href={"tel:" + p.phone.replace(/\s/g, "")}
-                        >{p.phone}</a
+                      <a
+                        class="link"
+                        href={"tel:" + p.phone.replace(/\s/g, "")}
                       >
+                        {p.phone}
+                      </a>
                     </div>
                   {/if}
-
                   {#if p.email}
                     <div class="mini-line">
                       <span class="icon sm" aria-hidden="true"
@@ -152,15 +147,13 @@
           </div>
         </section>
 
-        <!-- TOASTMASTER -->
         {#if toastmasterContact}
           <section class="block toast-block">
             <h2 class="section-title"><span>TOASTMASTER</span></h2>
             <p class="sub">
-              Ønsker du å holde tale eller bidra i programmet?<br />
-              Ta kontakt med toastmaster.
+              Ønsker du å holde tale eller bidra i programmet?<br />Ta kontakt
+              med toastmaster.
             </p>
-
             <div class="toast">
               {#if toastmasterContact.imagePath}
                 <img
@@ -170,11 +163,7 @@
                   loading="lazy"
                 />
               {/if}
-
-              <div class="person-name">
-                {toastmasterContact.friendlyName}
-              </div>
-
+              <div class="person-name">{toastmasterContact.friendlyName}</div>
               <div class="mini-lines">
                 {#if toastmasterContact.phone}
                   <div class="mini-line">
@@ -190,7 +179,6 @@
                     </a>
                   </div>
                 {/if}
-
                 {#if toastmasterContact.email}
                   <div class="mini-line">
                     <span class="icon sm" aria-hidden="true"
@@ -218,32 +206,27 @@
     --bg: #f2f1ee;
     --icon: rgba(216, 204, 191, 0.95);
   }
-
   .page {
     min-height: 100vh;
     background: var(--bg);
     color: var(--ink);
     padding: 6.6rem 1rem 7rem;
   }
-
   .wrap {
     max-width: 1060px;
     margin: 0 auto;
   }
-
   .intro {
     text-align: center;
     padding-top: 0.2rem;
     padding-bottom: 3.4rem;
   }
-
   .page-title {
     margin: 0;
     font-size: 1.55rem;
     font-weight: 500;
     letter-spacing: 0.22em;
   }
-
   .top-grid {
     max-width: 820px;
     margin: 0 auto 6.2rem;
@@ -252,35 +235,29 @@
     gap: 7.5rem;
     justify-items: center;
   }
-
   .contact-card {
     width: 100%;
     max-width: 320px;
     text-align: left;
   }
-
   .name {
     margin: 0 0 0.95rem;
     font-size: 1.05rem;
     font-weight: 500;
   }
-
   .lines {
     display: grid;
     gap: 0.85rem;
   }
-
   .line {
     display: flex;
     align-items: center;
     gap: 1rem;
   }
-
   .block {
     margin-top: 6.2rem;
     text-align: center;
   }
-
   .section-title {
     margin: 0 auto 0.65rem;
     max-width: 920px;
@@ -292,7 +269,6 @@
     letter-spacing: 0.36em;
     font-size: 1.2rem;
   }
-
   .section-title::before,
   .section-title::after {
     content: "";
@@ -300,12 +276,10 @@
     background: rgba(42, 42, 42, 0.1);
     flex: 1;
   }
-
   .section-title span {
     white-space: nowrap;
     transform: translateY(1px);
   }
-
   .sub {
     margin: 0 auto;
     max-width: 64ch;
@@ -313,7 +287,6 @@
     font-size: 0.92rem;
     line-height: 1.55;
   }
-
   .people-grid {
     margin: 3.15rem auto 0;
     max-width: 980px;
@@ -322,13 +295,11 @@
     gap: 5.4rem;
     justify-items: center;
   }
-
   .person {
     width: 100%;
     max-width: 280px;
     text-align: center;
   }
-
   .avatar {
     width: 220px;
     height: 220px;
@@ -338,12 +309,10 @@
     margin: 0 auto 1.45rem;
     background: rgba(0, 0, 0, 0.03);
   }
-
   .avatar.lg {
     width: 240px;
     height: 240px;
   }
-
   .person-name {
     margin: 0 0 1.15rem;
     text-transform: uppercase;
@@ -351,20 +320,17 @@
     font-size: 0.72rem;
     font-weight: 600;
   }
-
   .mini-lines {
     display: grid;
     gap: 0.75rem;
     justify-items: center;
   }
-
   .mini-line {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.9rem;
   }
-
   .icon {
     width: 18px;
     height: 18px;
@@ -374,33 +340,27 @@
     justify-content: center;
     opacity: 0.9;
   }
-
   .icon.sm {
     width: 17px;
     height: 17px;
   }
-
   .link {
     color: rgba(42, 42, 42, 0.9);
     text-decoration: none;
     font-size: 0.95rem;
   }
-
   .link:hover {
     text-decoration: underline;
   }
-
   .toast-block {
     margin-top: 6.5rem;
     padding-top: 0.25rem;
   }
-
   .toast {
     margin-top: 3.05rem;
     display: grid;
     justify-items: center;
   }
-
   @media (max-width: 980px) {
     .top-grid {
       gap: 3.5rem;
@@ -409,7 +369,6 @@
       gap: 3rem;
     }
   }
-
   @media (max-width: 860px) {
     .top-grid {
       grid-template-columns: 1fr;
@@ -417,17 +376,14 @@
       justify-items: start;
       max-width: 520px;
     }
-
     .people-grid {
       grid-template-columns: 1fr;
       gap: 3.2rem;
     }
-
     .person {
       max-width: 340px;
     }
   }
-
   @media (max-width: 560px) {
     .page {
       padding-top: 5.75rem;
