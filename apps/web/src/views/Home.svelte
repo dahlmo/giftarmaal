@@ -199,4 +199,10 @@
     color: var(--muted);
     text-align: center;
   }
+
+  @media (max-width: 767px) {
+    .rsvp-drawer {
+      max-height: 60vh;
+    }
+  }
 </style>
