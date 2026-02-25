@@ -1,5 +1,6 @@
 <script lang="ts">
   import { currentPath, navigate } from "./router";
+  import { authed as authedStore } from "./auth";
   import { onMount } from "svelte";
   export let style: "light" | "dark" = "dark";
   $: path = $currentPath;
@@ -8,6 +9,8 @@
   let invite = "";
   let checking = true;
   let error: string | null = null;
+
+  $: authedStore.set(authed);
 
   function getCookie(name: string): string | null {
     const v = document.cookie

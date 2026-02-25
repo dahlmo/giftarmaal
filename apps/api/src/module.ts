@@ -7,6 +7,7 @@ import { EventsController } from "./events.controller";
 import { EventsService } from "./events.service";
 import { PersonsController } from "./persons.controller";
 import { AuthController } from "./auth.controller";
+import { RsvpController } from "./rsvp.controller";
 
 function authPathsGuard(req: any, res: any, next: any) {
   const openPaths = [
@@ -37,6 +38,7 @@ function authPathsGuard(req: any, res: any, next: any) {
     EventsController,
     PersonsController,
     AuthController,
+    RsvpController,
   ],
   providers: [PrismaService, EventsService],
 })

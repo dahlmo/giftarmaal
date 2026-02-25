@@ -46,6 +46,7 @@ services:
       WATCHPACK_POLLING: "true"
     volumes:
       - ./apps/web:/app
+      - ./packages:/app/packages
       - /app/node_modules
     depends_on:
       - api

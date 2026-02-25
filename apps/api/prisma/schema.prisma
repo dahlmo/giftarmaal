@@ -71,7 +71,9 @@ model Person {
   country         String?
   title           String      @default("Guest")
   roles           PersonRole[]
-  rsvp            RsvpStatus @default(NO)
+  rsvp            RsvpStatus @default(UNKNOWN)
+  dietary         String?
+  comment         String?
   saveTheDateSent Boolean     @default(false)
   imagePath       String?
   thumbPath       String?
@@ -88,6 +90,7 @@ enum PersonRole {
 }
 
 enum RsvpStatus {
+  UNKNOWN
   YES
   NO
 }

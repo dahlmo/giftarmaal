@@ -1,0 +1,4 @@
+# Used inside Docker, where ./packages is mounted at /app/packages.
+# In local development always run pnpm from the monorepo root instead.
+packages:
+  - 'packages/*'

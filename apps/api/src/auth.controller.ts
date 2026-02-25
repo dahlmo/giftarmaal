@@ -97,6 +97,8 @@ export class AuthController {
         friendlyName: p.friendlyName,
         rsvp: p.rsvp,
         roles: p.roles,
+        dietary: p.dietary,
+        comment: p.comment,
       })),
     };
   }

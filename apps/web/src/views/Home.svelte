@@ -1,4 +1,5 @@
 <script lang="ts">
+  import RsvpSection from "../lib/RsvpSection.svelte";
   import Template from "../lib/Template.svelte";
 </script>
 
@@ -15,6 +16,8 @@
       <img class="logo" src="/img/logo_with_date.png" alt="E&M 4. juli 2026" />
     </div>
   </section>
+
+  <RsvpSection />
 
   <main class="page1">
     <section class="intro">
@@ -75,7 +78,7 @@
   .page1 {
     max-width: 900px;
     margin: 0 auto;
-    padding: 2rem 1rem 4rem;
+    padding: 2.5rem 1rem 4rem;
   }
 
   .lead {

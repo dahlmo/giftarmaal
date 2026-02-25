@@ -6,14 +6,16 @@ export type PersonRole =
   | "VENDOR"
   | "SPOUSE_TO_BE";
 
-export type RsvpStatus = "YES" | "NO";
+export type RsvpStatus = "UNKNOWN" | "YES" | "NO";
 
 /** Shape returned per-person by /api/auth/me */
 export type MemberDto = {
   id: string;
   friendlyName: string;
-  rsvp: RsvpStatus | null;
+  rsvp: RsvpStatus;
   roles: PersonRole[];
+  dietary: string | null;
+  comment: string | null;
 };
 
 /** Shape returned by /api/persons */
@@ -30,7 +32,7 @@ export type PersonDto = {
   country?: string;
   title?: string;
   roles: PersonRole[];
-  rsvp: RsvpStatus | null;
+  rsvp: RsvpStatus;
   saveTheDateSent: boolean;
   createdAt: string;
   updatedAt: string;
