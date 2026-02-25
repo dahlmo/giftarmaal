@@ -11,6 +11,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@giftarmaal/dto": "workspace:*",
     "@sveltejs/vite-plugin-svelte": "3.0.0",
     "leaflet": "1.9.4",
     "svelte": "4.2.0"

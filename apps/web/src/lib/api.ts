@@ -1,32 +1,8 @@
-export type PersonRoles =
-  | "GUEST"
-  | "TOASTMASTER"
-  | "PERSON_OF_HONOR"
-  | "PARENT"
-  | "VENDOR"
-  | "SPOUSE_TO_BE";
-export type RsvpStatus = "YES" | "NO";
-export type Person = {
-  id: string;
-  friendlyName: string;
-  fullName: string;
-  email: string;
-  phone?: string;
-  image?: string;
-  invitationCode?: string;
-  addressLine1?: string;
-  zipcode?: string;
-  city?: string;
-  country?: string;
-  title: string;
-  roles: PersonRoles[];
-  rsvp: RsvpStatus;
-  saveTheDateSent: boolean;
-  createdAt: string;
-  updatedAt: string;
-  imagePath: string;
-  thumbPath: string;
-};
+import type { PersonDto, PersonRole, RsvpStatus } from "@giftarmaal/dto";
+
+// Re-export shared types under the names the rest of the web app uses
+export type { PersonRole as PersonRoles, RsvpStatus };
+export type Person = PersonDto;
 
 export async function listPersons(): Promise<Person[]> {
   const res = await fetch("/api/persons");

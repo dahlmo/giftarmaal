@@ -95,6 +95,8 @@ export class AuthController {
       members: persons.map((p) => ({
         id: p.id,
         friendlyName: p.friendlyName,
+        rsvp: p.rsvp,
+        roles: p.roles,
       })),
     };
   }
