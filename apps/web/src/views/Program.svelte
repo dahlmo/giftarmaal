@@ -48,13 +48,18 @@
   onMount(loadContent);
 </script>
 
-<Template>
+<Template style="light">
   <main class="page">
     <section class="intro">
       <div class="intro-inner">
         <h1 class="page-title">{title}</h1>
         {#if lead}<p class="lead">{lead}</p>{/if}
-        <ScrollNudge onClick={() => document.querySelector(".content")?.scrollIntoView({ behavior: "smooth" })} />
+        <ScrollNudge
+          onClick={() =>
+            document
+              .querySelector(".content")
+              ?.scrollIntoView({ behavior: "smooth" })}
+        />
       </div>
     </section>
 
@@ -73,13 +78,57 @@
 </Template>
 
 <style>
-  .page { min-height: 100vh; background: #f2f1ee; color: #2a2a2a; }
-  .wrap { max-width: 760px; margin: 0 auto; padding: 0 1rem; }
-  .intro { min-height: calc(100vh - 72px); display: grid; place-items: center; padding: 5.5rem 1rem 2.5rem; text-align: center; }
-  .intro-inner { width: 100%; max-width: 760px; }
-  .page-title { margin: 0; font-size: 2.2rem; letter-spacing: 0.28em; font-weight: 500; }
-  .lead { margin: 1.1rem auto 0; max-width: 46ch; font-size: 1.05rem; line-height: 1.45; color: rgba(42, 42, 42, 0.7); }
-  .content { padding: 2rem 0 6rem; }
-  .error { color: #dc4b4b; margin-top: 0.75rem; }
-  @media (max-width: 820px) { .intro { min-height: calc(100vh - 64px); padding-top: 5rem; } .page-title { font-size: 1.9rem; } .lead { font-size: 1rem; } }
+  .page {
+    min-height: 100vh;
+    background: #f2f1ee;
+    color: #2a2a2a;
+  }
+  .wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+  .intro {
+    min-height: calc(100vh - 72px);
+    display: grid;
+    place-items: center;
+    padding: 5.5rem 1rem 2.5rem;
+    text-align: center;
+  }
+  .intro-inner {
+    width: 100%;
+    max-width: 760px;
+  }
+  .page-title {
+    margin: 0;
+    font-size: 2.2rem;
+    letter-spacing: 0.28em;
+    font-weight: 500;
+  }
+  .lead {
+    margin: 1.1rem auto 0;
+    max-width: 46ch;
+    font-size: 1.05rem;
+    line-height: 1.45;
+    color: rgba(42, 42, 42, 0.7);
+  }
+  .content {
+    padding: 2rem 0 6rem;
+  }
+  .error {
+    color: #dc4b4b;
+    margin-top: 0.75rem;
+  }
+  @media (max-width: 820px) {
+    .intro {
+      min-height: calc(100vh - 64px);
+      padding-top: 5rem;
+    }
+    .page-title {
+      font-size: 1.9rem;
+    }
+    .lead {
+      font-size: 1rem;
+    }
+  }
 </style>
