@@ -1,27 +1,54 @@
-node_modules
-.pnpm-store
+# ──────────────────────────────────────────────
+# Node & dependencies
+# ──────────────────────────────────────────────
+node_modules/
+.pnpm-store/
+
+# ──────────────────────────────────────────────
+# OS / Editor files
+# ──────────────────────────────────────────────
 .DS_Store
+
+# ──────────────────────────────────────────────
+# Environment files
+# ──────────────────────────────────────────────
 .env
 .env.*
-dist
-build
-coverage
-.prisma
-**/.svelte-kit
-**/.vite
-**/.turbo
+
+# ──────────────────────────────────────────────
+# Build output
+# ──────────────────────────────────────────────
+dist/
+build/
+coverage/
+.prisma/
+
+**/.svelte-kit/
+**/.vite/
+**/.turbo/
+
+# ──────────────────────────────────────────────
+# Terraform state
+# ──────────────────────────────────────────────
 terraform/**/*.tfstate
 terraform/**/*.tfstate.backup
 terraform/**/.terraform/
-CRUSH.md
 
+# ──────────────────────────────────────────────
+# Project-specific ignores
+# ──────────────────────────────────────────────
+CRUSH.md
 uploads/
 *.sql
 
-# M+E (Can be removed later when less lazy)
+# Wedding site static images (ignore originals)
 apps/web/public/img/logo_with_date.png
 apps/web/public/img/hero.jpg
-
-
 apps/web/public/img/logo_wo_date_dark.png
 apps/web/public/img/logo_wo_date_light.png
+
+# ──────────────────────────────────────────────
+# Temporary files created by automation/bots
+# ──────────────────────────────────────────────
+NIGHTLY_TEST.md
+automation/**/*.tmp
