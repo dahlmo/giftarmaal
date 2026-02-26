@@ -53,21 +53,7 @@ def load_reports() -> str:
 
 
 def get_git_diff() -> str:
-    diff = run(["git", "diff"], check=False)
-    lines = diff.splitlines()
-
-    filtered_lines = []
-    skip_block = False
-
-    for line in lines:
-        if line.startswith("diff --git "):
-            # start på ny fil-blokk: finn ut om dette gjelder .gitignore
-            skip_block = " a/.gitignore " in line or " b/.gitignore " in line
-
-        if not skip_block:
-            filtered_lines.append(line)
-
-    return "\n".join(filtered_lines)
+  return run(["git", "diff"], check=False)
 
 
 def get_file_content(path: str) -> str:
@@ -124,7 +110,7 @@ def ask_model(system: str, user: str, timeout_seconds: int = 5) -> str:
         print("[LLM] Modell-feil:", repr(result["error"]))
         return ""
 
-    print(f"[LLM] Fikk respons ({len(result['content'])} bytes)")
+    print(f"[LLM] Fikk respons ({len(result['content'] or '')} bytes)")
     return result["content"] or ""
 
 
