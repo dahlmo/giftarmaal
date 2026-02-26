@@ -13,7 +13,15 @@ coverage
 terraform/**/*.tfstate
 terraform/**/*.tfstate.backup
 terraform/**/.terraform/
+CRUSH.md
+
+uploads/
+*.sql
 
 # M+E (Can be removed later when less lazy)
 apps/web/public/img/logo_with_date.png
 apps/web/public/img/hero.jpg
+
+
+apps/web/public/img/logo_wo_date_dark.png
+apps/web/public/img/logo_wo_date_light.png
