@@ -19,7 +19,7 @@ MODEL = os.environ.get("MODEL_NAME", "qwen2.5-coder:32b")
 GH_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO_SLUG = os.environ.get("REPO_SLUG")
 
-print(GH_TOKEN)
+FAST_MODE = os.getenv("FAST_MODE") == "1"
 
 client = OpenAI(
     base_url=f"{OLLAMA_BASE_URL}/v1",
@@ -79,10 +79,18 @@ def get_file_content(path: str) -> str:
 
 
 def ask_model(system: str, user: str, timeout_seconds: int = 5) -> str:
-    """
-    Kaller Ollama-modellen, men avbryter etter timeout_seconds.
-    Returnerer tom streng ved timeout.
-    """
+    # Rask test-modus: returner en ferdig diff i stedet for å spørre modellen
+    if FAST_MODE:
+        return """diff --git a/automation/NIGHTLY_TEST.txt b/automation/NIGHTLY_TEST.txt
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/automation/NIGHTLY_TEST.txt
+@@ -0,0 +1,3 @@
++Nightly bot test file.
++Safe to delete.
++
+"""
 
     result = {"content": None, "error": None}
 
@@ -95,7 +103,7 @@ def ask_model(system: str, user: str, timeout_seconds: int = 5) -> str:
                     {"role": "user", "content": user},
                 ],
                 temperature=0.2,
-                max_tokens=512,  # holder dette lavt ved testing
+                max_tokens=512,
             )
             result["content"] = resp.choices[0].message.content or ""
         except Exception as e:
@@ -107,8 +115,7 @@ def ask_model(system: str, user: str, timeout_seconds: int = 5) -> str:
 
     if thread.is_alive():
         print(f"[LLM] Timeout etter {timeout_seconds} sekunder — avbryter kall.")
-        # Merk: vi kan ikke drepe tråden, men vi bare ignorerer resultatet
-        return ""  
+        return ""
 
     if result["error"]:
         print("[LLM] Modell-feil:", repr(result["error"]))
