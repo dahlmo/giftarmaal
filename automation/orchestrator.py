@@ -4,6 +4,7 @@ import json
 import re
 import subprocess
 from pathlib import Path
+import threading
 from typing import List
 
 from openai import OpenAI
@@ -77,17 +78,44 @@ def get_file_content(path: str) -> str:
     return p.read_text(encoding="utf-8", errors="ignore")
 
 
-def ask_model(system: str, user: str) -> str:
-    resp = client.chat.completions.create(
-        model=MODEL,
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-        temperature=0.2,
-        max_tokens=2048,
-    )
-    return resp.choices[0].message.content or ""
+def ask_model(system: str, user: str, timeout_seconds: int = 5) -> str:
+    """
+    Kaller Ollama-modellen, men avbryter etter timeout_seconds.
+    Returnerer tom streng ved timeout.
+    """
+
+    result = {"content": None, "error": None}
+
+    def worker():
+        try:
+            resp = client.chat.completions.create(
+                model=MODEL,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                temperature=0.2,
+                max_tokens=512,  # holder dette lavt ved testing
+            )
+            result["content"] = resp.choices[0].message.content or ""
+        except Exception as e:
+            result["error"] = e
+
+    thread = threading.Thread(target=worker)
+    thread.start()
+    thread.join(timeout_seconds)
+
+    if thread.is_alive():
+        print(f"[LLM] Timeout etter {timeout_seconds} sekunder — avbryter kall.")
+        # Merk: vi kan ikke drepe tråden, men vi bare ignorerer resultatet
+        return ""  
+
+    if result["error"]:
+        print("[LLM] Modell-feil:", repr(result["error"]))
+        return ""
+
+    print(f"[LLM] Fikk respons ({len(result['content']) if result['content'] is not None else 0} bytes)")
+    return result["content"] or ""
 
 
 def extract_diff(raw: str) -> str | None:
