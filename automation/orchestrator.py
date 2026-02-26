@@ -4,8 +4,6 @@ import json
 import subprocess
 from pathlib import Path
 from typing import List
-import threading
-import textwrap
 
 from openai import OpenAI
 
@@ -19,9 +17,6 @@ MODEL = os.environ.get("MODEL_NAME", "qwen2.5-coder:32b")
 GH_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO_SLUG = os.environ.get("REPO_SLUG")
 
-# Test-flagg: hvis satt, bruker vi en hardkodet diff i stedet for LLM
-FAST_MODE = os.getenv("FAST_MODE") == "1"
-
 client = OpenAI(
     base_url=f"{OLLAMA_BASE_URL}/v1",
     api_key=OLLAMA_API_KEY,
@@ -29,6 +24,7 @@ client = OpenAI(
 
 
 def run(cmd: List[str], cwd: Path = ROOT, check: bool = True) -> str:
+    """Run a shell command and return stdout as text."""
     res = subprocess.run(
         cmd,
         cwd=str(cwd),
@@ -41,7 +37,17 @@ def run(cmd: List[str], cwd: Path = ROOT, check: bool = True) -> str:
     return res.stdout
 
 
+def working_tree_dirty() -> bool:
+    """
+    Return True if working tree is not clean.
+    This includes untracked files (git status --porcelain).
+    """
+    status = run(["git", "status", "--porcelain"], check=False)
+    return bool(status.strip())
+
+
 def load_reports() -> str:
+    """Load all JSON scanner reports into one big text blob."""
     chunks = []
     for p in REPORT_DIR.glob("*.json"):
         try:
@@ -53,84 +59,67 @@ def load_reports() -> str:
 
 
 def get_git_diff() -> str:
-  return run(["git", "diff"], check=False)
+    """
+    Get git diff for tracked changes, but ignore .gitignore diffs.
+    We only care about actual code/config changes.
+    """
+    diff = run(["git", "diff"], check=False)
+    lines = diff.splitlines()
+
+    filtered_lines = []
+    skip_block = False
+
+    for line in lines:
+        if line.startswith("diff --git "):
+            # Start of a new file block.
+            skip_block = " a/.gitignore " in line or " b/.gitignore " in line
+
+        if not skip_block:
+            filtered_lines.append(line)
+
+    return "\n".join(filtered_lines)
 
 
 def get_file_content(path: str) -> str:
+    """Safely read a file relative to repo root."""
     p = ROOT / path
     if not p.exists():
         return ""
     return p.read_text(encoding="utf-8", errors="ignore")
 
 
-def ask_model(system: str, user: str, timeout_seconds: int = 5) -> str:
-    # Rask test-modus: hopp over LLM og returner en enkel, gyldig git-diff
-    if FAST_MODE:
-        patch = textwrap.dedent(
-            """\
-            diff --git a/automation/NIGHTLY_TEST.txt b/automation/NIGHTLY_TEST.txt
-            new file mode 100644
-            index 0000000..1111111
-            --- /dev/null
-            +++ b/automation/NIGHTLY_TEST.txt
-            @@ -0,0 +1,3 @@
-            +Nightly bot test file.
-            +Safe to delete.
-            +Generated in FAST_MODE.
-            """
-        )
-        return patch
-
-    result = {"content": None, "error": None}
-
-    def worker():
-        try:
-            resp = client.chat.completions.create(
-                model=MODEL,
-                messages=[
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user},
-                ],
-                temperature=0.2,
-                max_tokens=2048,
-            )
-            result["content"] = resp.choices[0].message.content or ""
-        except Exception as e:
-            result["error"] = e
-
-    thread = threading.Thread(target=worker)
-    thread.start()
-    thread.join(timeout_seconds)
-
-    if thread.is_alive():
-        print(f"[LLM] Timeout etter {timeout_seconds} sekunder — avbryter kall.")
-        return ""
-
-    if result["error"]:
-        print("[LLM] Modell-feil:", repr(result["error"]))
-        return ""
-
-    print(f"[LLM] Fikk respons ({len(result['content'] or '')} bytes)")
-    return result["content"] or ""
+def ask_model(system: str, user: str) -> str:
+    """Call the local Ollama-compatible model via OpenAI client."""
+    resp = client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        temperature=0.2,
+        max_tokens=2048,
+    )
+    return resp.choices[0].message.content or ""
 
 
 def generate_and_apply_patches():
+    """Ask the model for a single unified diff, then apply it."""
     reports_text = load_reports()
     if not reports_text.strip():
-        print("Ingen rapporter å jobbe med.")
+        print("No reports to work with.")
         return
 
     system = """
-Du er en senior fullstack-utvikler. Du får:
-- rapporter fra code scanners
-- relevante kodefiler
+You are a senior fullstack developer. You receive:
+- scanner reports
+- relevant code files from this repo
 
-Jobb:
-- Finn 1–3 konkrete, små forbedringer (security, bug, klarhet) å fikse i denne runden.
-- Generer EN samlet 'git diff' patch i unified diff-format.
-- Patchen må være minimal, men kompilere/kjøre.
-- Endre kun eksisterende filer – ikke legg til eller slett filer.
-- Ingen forklaring, bare ren diff.
+Your job:
+- Find 1–3 small, concrete improvements (security, bug fix, clarity) to fix in this run.
+- Generate ONE unified 'git diff' patch in standard format.
+- The patch must be minimal but compile/run.
+- Modify existing files only – do NOT add or delete files.
+- No explanation, only raw diff.
 """
 
     key_files = [
@@ -151,10 +140,10 @@ Jobb:
 
     user = "\n".join(context_parts)
 
-    print("Sender til modell…")
+    print("Sending to model…")
     patch = ask_model(system, user)
     if "diff --git" not in patch:
-        print("Fikk ikke diff tilbake, skipper.")
+        print("Did not receive a diff back, skipping.")
         return
 
     patch_file = ROOT / "automation" / "llm.patch"
@@ -162,33 +151,55 @@ Jobb:
 
     try:
         run(["git", "apply", str(patch_file)])
+        print("Patch applied.")
     except Exception as e:
-        print("Klarte ikke å apply patch:", e)
+        print("Failed to apply patch:", e)
         return
-
-    print("Patch appliert.")
+    finally:
+        # Do not leave the patch file as untracked noise.
+        try:
+            patch_file.unlink()
+        except FileNotFoundError:
+            pass
 
 
 def run_tests() -> bool:
+    """Run project tests. Adjust command if needed."""
     try:
         run(["pnpm", "test"], check=True)
         return True
     except Exception as e:
-        print("Tester feilet:", e)
+        print("Tests failed:", e)
         return False
 
 
 def create_pr():
-    diff = get_git_diff()
-    if not diff.strip():
-        print("Ingen endringer etter patch, ingen PR.")
+    """
+    Create a branch, commit changes and open a PR using gh CLI.
+    Only runs if there are tracked changes.
+    """
+    # Check for any changes at all (tracked or untracked).
+    status = run(["git", "status", "--porcelain"], check=False)
+    if not status.strip():
+        print("No changes after patch, no PR.")
         return
 
+    diff = get_git_diff()
+    if not diff.strip():
+        print("Only untracked/ignored changes or .gitignore diffs – no PR.")
+        return
+
+    # Create branch name based on timestamp
     branch_name = "bot/nightly-" + run(
         ["date", "+%Y%m%d-%H%M%S"], check=False
     ).strip()
+
     run(["git", "checkout", "-b", branch_name])
-    run(["git", "add", "."], check=False)
+
+    # Only stage changes to already tracked files.
+    # We told the model not to create new files.
+    run(["git", "add", "-u"], check=False)
+
     run(["git", "commit", "-m", "chore: nightly bot improvements"])
 
     env = os.environ.copy()
@@ -202,10 +213,10 @@ def create_pr():
         check=True,
     )
 
-    title = "Nightly bot: små forbedringer"
+    title = "Nightly bot: small improvements"
     body = (
-        "Automatisk generert PR fra nattlig bot (Ollama + Qwen). "
-        "Vennligst review før merge."
+        "Automatically generated PR from nightly bot (Ollama + Qwen).\n"
+        "Please review before merging."
     )
 
     subprocess.run(
@@ -214,36 +225,37 @@ def create_pr():
         env=env,
         check=True,
     )
-    print("PR opprettet.")
+    print("PR created.")
 
 
 def main():
-    # 1) sørg for clean working tree før vi starter
-    if get_git_diff().strip():
-        print("Working tree er ikke clean – avbryter.")
+    # 1) Ensure a clean working tree before doing anything
+    if working_tree_dirty():
+        print("Working tree is not clean – aborting.")
+        run(["git", "status"], check=False)
         return
 
-    # 2) oppdater main
+    # 2) Make sure we are on up-to-date main
     run(["git", "checkout", "main"])
     run(["git", "pull", "--ff-only"])
 
-    # 3) kjør scannere
-    print("Kjører scannere…")
+    # 3) Run scanners
+    print("Running scanners…")
     subprocess.run(
         ["bash", "automation/scanners/run_scanners.sh"],
         cwd=str(ROOT),
         check=False,
     )
 
-    # 4) generer og apply patches
+    # 4) Generate and apply patches
     generate_and_apply_patches()
 
-    # 5) kjør tester
+    # 5) Run tests; if they fail, bail out
     if not run_tests():
-        print("Endringer men tester feilet – ingen PR.")
+        print("Changes exist but tests failed – no PR.")
         return
 
-    # 6) lag PR
+    # 6) Create PR if there are tracked changes
     create_pr()
 
 
