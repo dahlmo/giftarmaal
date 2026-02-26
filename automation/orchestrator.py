@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 import os
 import json
-import re
 import subprocess
 from pathlib import Path
-import threading
 from typing import List
+import threading
+import textwrap
 
 from openai import OpenAI
 
@@ -19,6 +19,7 @@ MODEL = os.environ.get("MODEL_NAME", "qwen2.5-coder:32b")
 GH_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO_SLUG = os.environ.get("REPO_SLUG")
 
+# Test-flagg: hvis satt, bruker vi en hardkodet diff i stedet for LLM
 FAST_MODE = os.getenv("FAST_MODE") == "1"
 
 client = OpenAI(
@@ -53,22 +54,20 @@ def load_reports() -> str:
 
 def get_git_diff() -> str:
     diff = run(["git", "diff"], check=False)
-    if not diff.strip():
-        return ""
-
     lines = diff.splitlines()
-    filtered_lines: list[str] = []
+
+    filtered_lines = []
     skip_block = False
 
     for line in lines:
         if line.startswith("diff --git "):
-            # New block – check if it concerns .gitignore
+            # start på ny fil-blokk: finn ut om dette gjelder .gitignore
             skip_block = " a/.gitignore " in line or " b/.gitignore " in line
 
         if not skip_block:
             filtered_lines.append(line)
 
-    return "\n".join(filtered_lines).strip()
+    return "\n".join(filtered_lines)
 
 
 def get_file_content(path: str) -> str:
@@ -79,18 +78,22 @@ def get_file_content(path: str) -> str:
 
 
 def ask_model(system: str, user: str, timeout_seconds: int = 5) -> str:
-    # Rask test-modus: returner en ferdig diff i stedet for å spørre modellen
+    # Rask test-modus: hopp over LLM og returner en enkel, gyldig git-diff
     if FAST_MODE:
-        return """diff --git a/automation/NIGHTLY_TEST.txt b/automation/NIGHTLY_TEST.txt
-new file mode 100644
-index 0000000..e69de29
---- /dev/null
-+++ b/automation/NIGHTLY_TEST.txt
-@@ -0,0 +1,3 @@
-+Nightly bot test file.
-+Safe to delete.
-+
-"""
+        patch = textwrap.dedent(
+            """\
+            diff --git a/automation/NIGHTLY_TEST.txt b/automation/NIGHTLY_TEST.txt
+            new file mode 100644
+            index 0000000..1111111
+            --- /dev/null
+            +++ b/automation/NIGHTLY_TEST.txt
+            @@ -0,0 +1,3 @@
+            +Nightly bot test file.
+            +Safe to delete.
+            +Generated in FAST_MODE.
+            """
+        )
+        return patch
 
     result = {"content": None, "error": None}
 
@@ -103,7 +106,7 @@ index 0000000..e69de29
                     {"role": "user", "content": user},
                 ],
                 temperature=0.2,
-                max_tokens=512,
+                max_tokens=2048,
             )
             result["content"] = resp.choices[0].message.content or ""
         except Exception as e:
@@ -121,58 +124,29 @@ index 0000000..e69de29
         print("[LLM] Modell-feil:", repr(result["error"]))
         return ""
 
-    print(f"[LLM] Fikk respons ({len(result['content']) if result['content'] is not None else 0} bytes)")
+    print(f"[LLM] Fikk respons ({len(result['content'])} bytes)")
     return result["content"] or ""
-
-
-def extract_diff(raw: str) -> str | None:
-    if not raw:
-        return None
-
-    text = raw.strip()
-    if not text:
-        return None
-
-    # 1) Look for ```diff```/```-blocks
-    fence_match = re.search(r"```(?:diff)?\s*(.*?)```", text, re.S)
-    if fence_match:
-        block = fence_match.group(1).strip()
-        if "diff --git" in block:
-            # If the block is already a clean diff, use it
-            return block[block.index("diff --git") :].strip()
-
-    # 2) Otherwise: find the first 'diff --git' and take everything from there
-    if "diff --git" in text:
-        idx = text.index("diff --git")
-        return text[idx:].strip()
-
-    return None
 
 
 def generate_and_apply_patches():
     reports_text = load_reports()
     if not reports_text.strip():
-        print("No reports to work with.")
+        print("Ingen rapporter å jobbe med.")
         return
 
     system = """
-      You are a senior full-stack developer. You will receive:
-        - reports from code scanners
-        - relevant code files
+Du er en senior fullstack-utvikler. Du får:
+- rapporter fra code scanners
+- relevante kodefiler
 
-      Task:
-        - Identify 1–3 concrete, small improvements (security, bug, clarity) to fix in this round.
-        - Generate ONE combined ‘git diff’ patch in unified diff format.
-        - The patch must be minimal but must compile/run.
-        - Modify existing files only – do not add or delete files.
-
-      RESPONSE FORMAT (IMPORTANT):
-        - Respond ONLY with a valid git diff.
-        - The first line must start with: diff --git
-        - No explanation, no markdown wrapper.
+Jobb:
+- Finn 1–3 konkrete, små forbedringer (security, bug, klarhet) å fikse i denne runden.
+- Generer EN samlet 'git diff' patch i unified diff-format.
+- Patchen må være minimal, men kompilere/kjøre.
+- Endre kun eksisterende filer – ikke legg til eller slett filer.
+- Ingen forklaring, bare ren diff.
 """
 
-    # Fetch some code context (hardcode some key files)
     key_files = [
         "apps/api/src/main.ts",
         "apps/api/src/app.module.ts",
@@ -191,30 +165,26 @@ def generate_and_apply_patches():
 
     user = "\n".join(context_parts)
 
-    print("Sending to model…")
-    raw_patch = ask_model(system, user)
-
-    patch = extract_diff(raw_patch)
-    if not patch:
-        print("Did not receive a diff back, skipping.")
+    print("Sender til modell…")
+    patch = ask_model(system, user)
+    if "diff --git" not in patch:
+        print("Fikk ikke diff tilbake, skipper.")
         return
 
-    # Skriv patch til fil og apply
     patch_file = ROOT / "automation" / "llm.patch"
     patch_file.write_text(patch, encoding="utf-8")
 
     try:
         run(["git", "apply", str(patch_file)])
     except Exception as e:
-        print("Failed to apply patch:", e)
+        print("Klarte ikke å apply patch:", e)
         return
 
-    print("Patch applied.")
+    print("Patch appliert.")
 
 
 def run_tests() -> bool:
     try:
-        # tilpass til prosjektet ditt
         run(["pnpm", "test"], check=True)
         return True
     except Exception as e:
@@ -225,7 +195,7 @@ def run_tests() -> bool:
 def create_pr():
     diff = get_git_diff()
     if not diff.strip():
-        print("No changes after patch, no PR.")
+        print("Ingen endringer etter patch, ingen PR.")
         return
 
     branch_name = "bot/nightly-" + run(
@@ -235,7 +205,6 @@ def create_pr():
     run(["git", "add", "."], check=False)
     run(["git", "commit", "-m", "chore: nightly bot improvements"])
 
-    # Push + create PR med gh CLI
     env = os.environ.copy()
     if GH_TOKEN:
         env["GITHUB_TOKEN"] = GH_TOKEN
@@ -247,10 +216,10 @@ def create_pr():
         check=True,
     )
 
-    title = "Nightly bot: small improvements"
+    title = "Nightly bot: små forbedringer"
     body = (
-        "Automatically generated PR from nightly bot. "
-        "Please review before merging."
+        "Automatisk generert PR fra nattlig bot (Ollama + Qwen). "
+        "Vennligst review før merge."
     )
 
     subprocess.run(
@@ -259,36 +228,36 @@ def create_pr():
         env=env,
         check=True,
     )
-    print("PR created.")
+    print("PR opprettet.")
 
 
 def main():
-    # 1) ensure clean working tree before starting (ignore .gitignore noise)
+    # 1) sørg for clean working tree før vi starter
     if get_git_diff().strip():
-        print("Working tree is not clean – aborting.")
+        print("Working tree er ikke clean – avbryter.")
         return
 
-    # 2) update main
+    # 2) oppdater main
     run(["git", "checkout", "main"])
     run(["git", "pull", "--ff-only"])
 
-    # 3) run scanners
-    print("Running scanners…")
+    # 3) kjør scannere
+    print("Kjører scannere…")
     subprocess.run(
         ["bash", "automation/scanners/run_scanners.sh"],
         cwd=str(ROOT),
         check=False,
     )
 
-    # 4) generate and apply patches
+    # 4) generer og apply patches
     generate_and_apply_patches()
 
-    # 5) run tests
+    # 5) kjør tester
     if not run_tests():
-        print("Changes but tests failed – no PR.")
+        print("Endringer men tester feilet – ingen PR.")
         return
 
-    # 6) create PR
+    # 6) lag PR
     create_pr()
 
 
