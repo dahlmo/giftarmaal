@@ -8,7 +8,7 @@
     "preview": "vite preview --port 5173",
     "lint": "eslint .",
     "typecheck": "svelte-check --tsconfig ./tsconfig.json",
-    "test": "vitest"
+    "test": "vitest run"
   },
   "dependencies": {
     "@giftarmaal/dto": "workspace:*",
