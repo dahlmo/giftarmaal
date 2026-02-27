@@ -95,6 +95,35 @@ def normalize_patch(raw: str) -> str:
     return text
 
 
+def keep_first_hunk(patch: str) -> str:
+    """
+    Keep only the first file header and first hunk for that file.
+    This avoids corrupt patches where the model starts a second hunk
+    without giving a proper header or context.
+    """
+    if not patch.strip():
+        return ""
+
+    lines = patch.splitlines()
+    out: list[str] = []
+
+    seen_first_hunk = False
+
+    for line in lines:
+        if line.startswith("@@ "):
+            if not seen_first_hunk:
+                seen_first_hunk = True
+                out.append(line)
+                continue
+            # Second hunk encountered -> stop here
+            break
+
+        out.append(line)
+
+    # Ensure trailing newline so git apply is happier
+    return "\n".join(out) + "\n"
+
+
 def ask_model(system: str, user: str) -> str:
     resp = client.chat.completions.create(
         model=MODEL,
@@ -102,8 +131,8 @@ def ask_model(system: str, user: str) -> str:
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ],
-        temperature=0.0,
-        max_tokens=400,
+        temperature=0.2,
+        max_tokens=2048,
     )
     return resp.choices[0].message.content or ""
 
@@ -159,6 +188,13 @@ Output requirements (IMPORTANT):
     raw_patch = ask_model(system, user)
     patch = normalize_patch(raw_patch)
 
+    if not patch.strip():
+        print("Empty patch from model.")
+        return
+
+    # Enforce that we only modify the allowed file and keep only first hunk
+    patch = keep_first_hunk(patch)
+
     patch_file = ROOT / "automation" / "llm.patch"
     patch_file.write_text(patch, encoding="utf-8")
 
@@ -171,7 +207,6 @@ Output requirements (IMPORTANT):
     bad_files = []
     for line in patch.splitlines():
         if line.startswith("diff --git "):
-            # line looks like: diff --git a/path b/path
             parts = line.split()
             if len(parts) >= 4:
                 a_path = parts[2].removeprefix("a/")
@@ -183,6 +218,15 @@ Output requirements (IMPORTANT):
         print("Patch tries to modify unsupported files, skipping.")
         print("Offending paths:", bad_files)
         print("First 400 chars of patch:")
+        print(patch[:400])
+        return
+
+    # Sanity check before applying
+    try:
+        run(["git", "apply", "--check", str(patch_file)])
+    except Exception as e:
+        print("Patch did not pass 'git apply --check':", e)
+        print("First 400 chars of patch for debugging:")
         print(patch[:400])
         return
 
