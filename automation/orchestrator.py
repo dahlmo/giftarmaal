@@ -2,9 +2,10 @@
 import os
 import json
 import subprocess
+import re
 from pathlib import Path
 from typing import List
-import shutil  # add this
+import shutil
 
 from openai import OpenAI
 
@@ -18,6 +19,11 @@ MODEL = os.environ.get("MODEL_NAME", "qwen2.5-coder:32b")
 GH_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO_SLUG = os.environ.get("REPO_SLUG")
 FAST_MODE = os.environ.get("FAST_MODE") == "1"
+
+MAX_FILE_CHARS = 6000 if FAST_MODE else 12000
+MAX_REPORT_CHARS = 3000 if FAST_MODE else 8000
+
+AI_ISSUES_FILE = "ai-issues.json"
 
 client = OpenAI(
     base_url=f"{OLLAMA_BASE_URL}/v1",
@@ -38,30 +44,42 @@ def run(cmd: List[str], cwd: Path = ROOT, check: bool = True) -> str:
     return res.stdout
 
 
+def get_source_files() -> list[str]:
+    """Discover all non-spec TypeScript source files in the API."""
+    src_dir = ROOT / "apps" / "api" / "src"
+    if not src_dir.exists():
+        return []
+    files = []
+    for p in src_dir.rglob("*.ts"):
+        if ".spec." in p.name:
+            continue
+        if "node_modules" in str(p):
+            continue
+        files.append(str(p.relative_to(ROOT)))
+    return sorted(files)
+
+
 def load_reports() -> str:
     chunks = []
-    for p in REPORT_DIR.glob("*.json"):
+    for p in sorted(REPORT_DIR.glob("*.json")):
+        if p.name == AI_ISSUES_FILE:
+            continue
         try:
             data = json.loads(p.read_text(encoding="utf-8"))
         except Exception:
             continue
         text = json.dumps(data, indent=2)
-        if FAST_MODE:
-            text = text[:4000]
+        if len(text) > MAX_REPORT_CHARS:
+            text = text[:MAX_REPORT_CHARS] + "\n... (truncated)"
         chunks.append(f"=== REPORT: {p.name} ===\n{text}\n")
     return "\n".join(chunks)
 
 
 def get_git_diff() -> str:
-    """Return full git diff for tracked files."""
     return run(["git", "diff"], check=False)
 
 
 def working_tree_has_uncommitted_changes(ignore_gitignore: bool = False) -> bool:
-    """
-    Check if there are uncommitted changes.
-    If ignore_gitignore=True, changes only to .gitignore are ignored.
-    """
     names_raw = run(["git", "diff", "--name-only"], check=False)
     names = [n.strip() for n in names_raw.splitlines() if n.strip()]
     if ignore_gitignore:
@@ -74,8 +92,8 @@ def get_file_content(path: str) -> str:
     if not p.exists():
         return ""
     content = p.read_text(encoding="utf-8", errors="ignore")
-    if FAST_MODE and len(content) > 8000:
-        return content[:8000]
+    if len(content) > MAX_FILE_CHARS:
+        return content[:MAX_FILE_CHARS] + "\n... (truncated)"
     return content
 
 
@@ -91,155 +109,280 @@ def normalize_patch(raw: str) -> str:
         if candidates:
             text = candidates[0].strip()
         elif len(parts) >= 3:
-            text = parts[1].strip()
+            inner = parts[1].strip()
+            # strip language tag line (e.g. "diff\n..." or "patch\n...")
+            if "\n" in inner:
+                first_line, rest = inner.split("\n", 1)
+                if not first_line.startswith("diff"):
+                    inner = rest
+            text = inner.strip()
 
     return text
 
 
-def keep_first_hunk(patch: str) -> str:
-    """
-    Keep only the first file header and first hunk for that file.
-    This avoids corrupt patches where the model starts a second hunk
-    without giving a proper header or context.
-    """
-    if not patch.strip():
-        return ""
-
-    lines = patch.splitlines()
-    out: list[str] = []
-
-    seen_first_hunk = False
-
-    for line in lines:
-        if line.startswith("@@ "):
-            if not seen_first_hunk:
-                seen_first_hunk = True
-                out.append(line)
-                continue
-            # Second hunk encountered -> stop here
-            break
-
-        out.append(line)
-
-    # Ensure trailing newline so git apply is happier
-    return "\n".join(out) + "\n"
-
-
-def ask_model(system: str, user: str) -> str:
+def ask_model(system: str, user: str, max_tokens: int = 16000) -> str:
     resp = client.chat.completions.create(
         model=MODEL,
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ],
-        temperature=0.15,            # deterministic patches
-        max_tokens=16000,           # large patch size
+        temperature=0.15,
+        max_tokens=max_tokens,
     )
     return resp.choices[0].message.content or ""
 
 
-def generate_and_apply_patches():
+def _parse_issues(raw: str) -> list[dict]:
+    """Extract and validate a JSON issue list from a raw model response."""
+    try:
+        match = re.search(r"\[[\s\S]*\]", raw)
+        blob = match.group() if match else raw.strip()
+        issues = json.loads(blob)
+    except Exception as e:
+        print(f"Failed to parse analysis JSON: {e}")
+        print("Raw response (first 500 chars):", raw[:500])
+        return []
+    if not isinstance(issues, list):
+        print("Unexpected analysis format (not a list).")
+        return []
+    return issues
+
+
+def _save_analysis(issues: list[dict]) -> None:
+    """Persist issues as JSON + human-readable markdown."""
+    REPORT_DIR.mkdir(parents=True, exist_ok=True)
+    (REPORT_DIR / AI_ISSUES_FILE).write_text(
+        json.dumps(issues, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+
+    md_lines = ["# AI Nightly Analysis\n\n"]
+    if not issues:
+        md_lines.append("No issues found.\n")
+    else:
+        for i, issue in enumerate(issues, 1):
+            sev = issue.get("severity", "?").upper()
+            title = issue.get("title", "Untitled")
+            file_ = issue.get("file", "")
+            line = issue.get("line", "")
+            desc = issue.get("description", "")
+            sugg = issue.get("suggestion", "")
+            loc = f"{file_}:{line}" if line else file_
+            md_lines += [
+                f"## {i}. [{sev}] {title}\n\n",
+                f"**Location:** `{loc}`\n\n",
+                f"**Issue:** {desc}\n\n",
+                f"**Suggestion:** {sugg}\n\n",
+                "---\n\n",
+            ]
+
+    (ROOT / "automation" / "ai-suggestions.md").write_text(
+        "".join(md_lines), encoding="utf-8"
+    )
+
+
+def analyze_codebase() -> list[dict]:
+    """
+    Phase 1: Ask the model to analyze all source files and scanner reports.
+    Returns a ranked list of issues. Saves ai-suggestions.md for human review.
+    """
+    source_files = get_source_files()
     reports_text = load_reports()
-    if not reports_text.strip():
-        print("No reports to work with.")
-        return
 
-    # For now, restrict changes to a single safe file.
-    allowed_file = "apps/api/src/persons.controller.ts"
+    context_parts = []
+    if reports_text.strip():
+        context_parts.append("=== SCANNER REPORTS ===\n" + reports_text)
 
-    system = f"""
-You are a senior full-stack engineer.
+    for f in source_files:
+        content = get_file_content(f)
+        if content:
+            context_parts.append(f"===== FILE: {f} =====\n{content}")
 
-You are given:
-- One or more scanner reports (JSON-like text).
-- The current contents of {allowed_file}.
+    if not context_parts:
+        print("No source files or reports found.")
+        return []
 
-Your job in this run:
-- Pick 1–2 small, concrete improvements (logging clarity, robustness, minor bugfix) in {allowed_file}.
-- Generate ONE unified git patch in diff format.
+    system = """\
+You are a senior full-stack engineer performing a code review of a NestJS TypeScript API.
+
+You are given scanner reports (dependency audits, TypeScript errors, static analysis) \
+and the source files of the API.
+
+Your task: identify up to 5 concrete, actionable issues. Focus on:
+- Actual bugs or logic errors
+- Security problems (injection, missing auth, path traversal, unvalidated input, etc.)
+- Missing error handling that would cause crashes or silent failures
+- Missing input validation on API endpoints
+- Logging gaps that would make production debugging hard
+
+Severity guide:
+- high: causes data loss, security breach, or crashes in production
+- medium: incorrect behavior, bad error handling, or security weakness
+- low: code quality, logging clarity, minor robustness
+
+Output ONLY a valid JSON array (no prose, no markdown fences, no explanation):
+[
+  {
+    "severity": "high|medium|low",
+    "file": "apps/api/src/filename.ts",
+    "line": 42,
+    "title": "Short title (max 60 chars)",
+    "description": "What the issue is and why it matters",
+    "suggestion": "Concrete, specific fix"
+  }
+]"""
+
+    user = "\n\n".join(context_parts)
+
+    print("Analyzing codebase for issues…")
+    raw = ask_model(system, user, max_tokens=4000)
+
+    # Extract JSON array from response
+    issues = []
+    try:
+        match = re.search(r"\[[\s\S]*\]", raw)
+        if match:
+            issues = json.loads(match.group())
+        else:
+            issues = json.loads(raw.strip())
+    except Exception as e:
+        print(f"Failed to parse analysis JSON: {e}")
+        print("Raw response (first 500 chars):", raw[:500])
+        return []
+
+    if not isinstance(issues, list):
+        print("Unexpected analysis format (not a list).")
+        return []
+
+    # Save machine-readable issues
+    REPORT_DIR.mkdir(parents=True, exist_ok=True)
+    issues_file = REPORT_DIR / AI_ISSUES_FILE
+    issues_file.write_text(json.dumps(issues, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    # Save human-readable markdown
+    md_lines = ["# AI Nightly Analysis\n\n"]
+    if not issues:
+        md_lines.append("No issues found.\n")
+    else:
+        for i, issue in enumerate(issues, 1):
+            sev = issue.get("severity", "?").upper()
+            title = issue.get("title", "Untitled")
+            file_ = issue.get("file", "")
+            line = issue.get("line", "")
+            desc = issue.get("description", "")
+            sugg = issue.get("suggestion", "")
+            loc = f"{file_}:{line}" if line else file_
+            md_lines.append(f"## {i}. [{sev}] {title}\n\n")
+            md_lines.append(f"**Location:** `{loc}`\n\n")
+            md_lines.append(f"**Issue:** {desc}\n\n")
+            md_lines.append(f"**Suggestion:** {sugg}\n\n")
+            md_lines.append("---\n\n")
+
+    suggestions_file = ROOT / "automation" / "ai-suggestions.md"
+    suggestions_file.write_text("".join(md_lines), encoding="utf-8")
+    print(f"Analysis saved → automation/ai-suggestions.md ({len(issues)} issues found)")
+
+    return issues
+
+
+def generate_and_apply_patch(issue: dict) -> bool:
+    """
+    Phase 2: Generate and apply a patch for a specific issue.
+    Returns True if patch was applied successfully.
+    """
+    target_file = issue.get("file", "")
+    if not target_file:
+        print("Issue has no file, skipping patch.")
+        return False
+
+    # Only allow patching API source files
+    if not (target_file.startswith("apps/api/src/") and target_file.endswith(".ts")):
+        print(f"Skipping patch for unsupported file: {target_file}")
+        return False
+
+    file_content = get_file_content(target_file)
+    if not file_content:
+        print(f"File not found or empty: {target_file}")
+        return False
+
+    title = issue.get("title", "")
+    description = issue.get("description", "")
+    suggestion = issue.get("suggestion", "")
+
+    system = f"""\
+You are a senior full-stack engineer making a targeted, minimal fix.
+
+Fix exactly this issue in {target_file}:
+  Title: {title}
+  Problem: {description}
+  Fix: {suggestion}
 
 Hard constraints:
-- You may ONLY modify the file: {allowed_file}
-- You MUST NOT touch any other file.
-- The patch MUST be minimal but still compile / run.
-- Only modify existing lines / blocks. Do NOT create or delete files.
+- You may ONLY modify the file: {target_file}
+- Make the MINIMAL change needed — do not refactor unrelated code
+- The patch MUST compile and not break existing behavior
+- Only modify existing lines; do NOT create or delete files
 
-Output requirements (IMPORTANT):
-- Your ENTIRE response MUST be a valid unified git diff.
-- It MUST start with at least one line beginning with: diff --git
-- Do NOT include explanations, comments, prose, or markdown fences.
-- Do NOT wrap the diff in ``` blocks.
-- Just the raw diff.
-"""
+Output requirements (CRITICAL):
+- Your ENTIRE response MUST be a valid unified git diff
+- It MUST start with exactly: diff --git
+- Do NOT include explanations, comments, prose, or markdown fences
+- Just the raw diff, nothing else"""
 
-    key_files = [
-        allowed_file,
-    ]
+    user = f"===== FILE: {target_file} =====\n{file_content}"
 
-    context_parts = [reports_text]
-    for f in key_files:
-        content = get_file_content(f)
-        if not content:
-            continue
-        context_parts.append(f"\n\n===== FILE: {f} =====\n{content}")
-
-    user = "\n".join(context_parts)
-
-    print("Sending to model…")
+    print(f"Generating patch for: [{issue.get('severity','?').upper()}] {title}…")
     raw_patch = ask_model(system, user)
     patch = normalize_patch(raw_patch)
 
     if not patch.strip():
         print("Empty patch from model.")
-        return
-
-    # Enforce that we only modify the allowed file and keep only first hunk
-    patch = keep_first_hunk(patch)
-
-    patch_file = ROOT / "automation" / "llm.patch"
-    patch_file.write_text(patch, encoding="utf-8")
+        return False
 
     if "diff --git" not in patch:
-        print("Did not receive a 'diff --git' patch. First 400 chars:")
+        print("Model did not return a diff. First 400 chars:")
         print(patch[:400])
-        return
+        return False
 
-    # Enforce that only the allowed file is touched.
-    bad_files = []
+    # Validate only touches the allowed target file
     for line in patch.splitlines():
         if line.startswith("diff --git "):
             parts = line.split()
             if len(parts) >= 4:
                 a_path = parts[2].removeprefix("a/")
                 b_path = parts[3].removeprefix("b/")
-                if a_path != allowed_file or b_path != allowed_file:
-                    bad_files.append((a_path, b_path))
+                if a_path != target_file or b_path != target_file:
+                    print(f"Patch touches unexpected file ({a_path}) — skipping.")
+                    return False
 
-    if bad_files:
-        print("Patch tries to modify unsupported files, skipping.")
-        print("Offending paths:", bad_files)
-        print("First 400 chars of patch:")
-        print(patch[:400])
-        return
+    patch_file = ROOT / "automation" / "llm.patch"
+    patch_file.write_text(patch, encoding="utf-8")
 
-    # Sanity check before applying
     try:
         run(["git", "apply", "--check", str(patch_file)])
     except Exception as e:
-        print("Patch did not pass 'git apply --check':", e)
-        print("First 400 chars of patch for debugging:")
+        print("Patch failed 'git apply --check':", e)
+        print("First 400 chars of patch:")
         print(patch[:400])
-        return
+        return False
 
     try:
         run(["git", "apply", str(patch_file)])
     except Exception as e:
         print("Failed to apply patch:", e)
-        print("First 400 chars of patch for debugging:")
-        print(patch[:400])
-        return
+        return False
 
-    print("Patch applied.")
+    print("Patch applied successfully.")
+    return True
+
+
+def rollback_changes() -> None:
+    """Restore all modified tracked files to HEAD."""
+    try:
+        run(["git", "checkout", "--", "."])
+        print("Changes rolled back to HEAD.")
+    except Exception as e:
+        print(f"Rollback failed: {e}")
 
 
 def run_tests() -> bool:
@@ -251,10 +394,10 @@ def run_tests() -> bool:
         return False
 
 
-def create_pr():
+def create_pr(analysis_summary: str = "") -> None:
     diff = get_git_diff()
     if not diff.strip():
-        print("No changes after patch, no PR.")
+        print("No changes to push, no PR.")
         return
 
     branch_name = "bot/nightly-" + run(
@@ -270,7 +413,6 @@ def create_pr():
     if GH_TOKEN:
         env["GITHUB_TOKEN"] = GH_TOKEN
 
-    # Push branch so you always at least get a branch, even if gh is missing
     subprocess.run(
         ["git", "push", "origin", branch_name],
         cwd=str(ROOT),
@@ -279,24 +421,27 @@ def create_pr():
     )
     print(f"Pushed branch {branch_name} to origin.")
 
-    # If gh CLI is not installed, stop here
     if shutil.which("gh") is None:
         print(
             "GitHub CLI 'gh' not found. "
-            "Branch is pushed, but PR was not created automatically.\n"
-            f"Create a PR manually from branch '{branch_name}'."
+            f"Branch pushed — create a PR manually from '{branch_name}'."
         )
         return
 
-    title = "Nightly bot: small improvements"
-    body = (
-        "Automatically generated PR from nightly bot (Ollama + Qwen).\n"
-        "Please review before merging."
-    )
+    body_parts = [
+        "Automatically generated PR from nightly bot (Ollama + Qwen).",
+        "Please review before merging.\n",
+    ]
+    if analysis_summary:
+        body_parts.append("## All Issues Found This Run\n")
+        body_parts.append(analysis_summary)
+
+    body = "\n".join(body_parts)
 
     try:
         subprocess.run(
-            ["gh", "pr", "create", "--title", title, "--body", body, "--base", "main"],
+            ["gh", "pr", "create", "--title", "Nightly bot: automated improvement",
+             "--body", body, "--base", "main"],
             cwd=str(ROOT),
             env=env,
             check=True,
@@ -304,19 +449,16 @@ def create_pr():
         print("PR created.")
     except subprocess.CalledProcessError as e:
         print("Failed to create PR via gh CLI:", e)
-        print(
-            f"Branch '{branch_name}' is pushed. "
-            "You can create a PR manually on GitHub."
-        )
+        print(f"Branch '{branch_name}' is pushed — create a PR manually on GitHub.")
 
 
 def main():
-    # 1) Ensure clean working tree (ignoring .gitignore only)
+    # 1) Require clean working tree
     if working_tree_has_uncommitted_changes(ignore_gitignore=True):
-        print("Working tree is not clean (excluding .gitignore) – aborting.")
+        print("Working tree is not clean (excluding .gitignore) — aborting.")
         return
 
-    # 2) Update main
+    # 2) Update main branch
     run(["git", "checkout", "main"])
     run(["git", "pull", "--ff-only"])
 
@@ -328,16 +470,45 @@ def main():
         check=False,
     )
 
-    # 4) Generate and apply patches
-    generate_and_apply_patches()
-
-    # 5) Run tests
-    if not run_tests():
-        print("Changes exist but tests failed – no PR.")
+    # 4) Phase 1: Analyze codebase, produce ranked issue list + ai-suggestions.md
+    issues = analyze_codebase()
+    if not issues:
+        print("No issues identified — nothing to patch.")
         return
 
-    # 6) Create PR
-    create_pr()
+    # Sort by severity and pick the top issue to fix
+    severity_order = {"high": 0, "medium": 1, "low": 2}
+    issues.sort(key=lambda x: severity_order.get(x.get("severity", "low"), 2))
+    top_issue = issues[0]
+    print(
+        f"\nTop issue [{top_issue.get('severity','?').upper()}]: "
+        f"{top_issue.get('title','')} in {top_issue.get('file','')}"
+    )
+
+    # Build analysis summary for the PR body
+    summary_lines = []
+    for issue in issues:
+        sev = issue.get("severity", "?").upper()
+        title = issue.get("title", "")
+        file_ = issue.get("file", "")
+        desc = issue.get("description", "")
+        summary_lines.append(f"- **[{sev}] {title}** (`{file_}`): {desc}")
+    analysis_summary = "\n".join(summary_lines)
+
+    # 5) Phase 2: Generate and apply patch for the top issue
+    patched = generate_and_apply_patch(top_issue)
+    if not patched:
+        print("Could not generate a valid patch. Analysis saved — check ai-suggestions.md.")
+        return
+
+    # 6) Run tests; rollback if they fail
+    if not run_tests():
+        print("Tests failed — rolling back patch.")
+        rollback_changes()
+        return
+
+    # 7) Open PR with patch + analysis summary
+    create_pr(analysis_summary)
 
 
 if __name__ == "__main__":
