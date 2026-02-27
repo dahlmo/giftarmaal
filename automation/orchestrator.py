@@ -84,17 +84,13 @@ def normalize_patch(raw: str) -> str:
         return ""
     text = raw.strip()
 
-    # If the model wrapped the diff in ``` fences, try to extract the inner part.
     if "```" in text:
         parts = text.split("```")
-        # Prefer a part that contains 'diff --git'
         candidates = [p for p in parts if "diff --git" in p]
         if candidates:
             text = candidates[0].strip()
-        else:
-            # Fall back to the middle part if any
-            if len(parts) >= 3:
-                text = parts[1].strip()
+        elif len(parts) >= 3:
+            text = parts[1].strip()
 
     return text
 
@@ -118,18 +114,25 @@ def generate_and_apply_patches():
         print("No reports to work with.")
         return
 
-    system = """
+    # For now, restrict changes to a single safe file.
+    allowed_file = "apps/api/src/main.ts"
+
+    system = f"""
 You are a senior full-stack engineer.
 
 You are given:
 - One or more scanner reports (JSON-like text).
-- A handful of relevant code files.
+- The current contents of {allowed_file}.
 
 Your job in this run:
-- Pick 1–3 small, concrete improvements (security, bugs, clarity, robustness).
+- Pick 1–2 small, concrete improvements (logging clarity, robustness, minor bugfix) in {allowed_file}.
 - Generate ONE unified git patch in diff format.
+
+Hard constraints:
+- You may ONLY modify the file: {allowed_file}
+- You MUST NOT touch any other file.
 - The patch MUST be minimal but still compile / run.
-- Only modify existing files. Do NOT create or delete files.
+- Only modify existing lines / blocks. Do NOT create or delete files.
 
 Output requirements (IMPORTANT):
 - Your ENTIRE response MUST be a valid unified git diff.
@@ -140,11 +143,7 @@ Output requirements (IMPORTANT):
 """
 
     key_files = [
-        "apps/api/src/main.ts",
-        "apps/api/src/app.module.ts",
-        "apps/api/src/persons.controller.ts",
-        "apps/web/src/Home.svelte",
-        "package.json",
+        allowed_file,
     ]
 
     context_parts = [reports_text]
@@ -168,10 +167,31 @@ Output requirements (IMPORTANT):
         print(patch[:400])
         return
 
+    # Enforce that only the allowed file is touched.
+    bad_files = []
+    for line in patch.splitlines():
+        if line.startswith("diff --git "):
+            # line looks like: diff --git a/path b/path
+            parts = line.split()
+            if len(parts) >= 4:
+                a_path = parts[2].removeprefix("a/")
+                b_path = parts[3].removeprefix("b/")
+                if a_path != allowed_file or b_path != allowed_file:
+                    bad_files.append((a_path, b_path))
+
+    if bad_files:
+        print("Patch tries to modify unsupported files, skipping.")
+        print("Offending paths:", bad_files)
+        print("First 400 chars of patch:")
+        print(patch[:400])
+        return
+
     try:
         run(["git", "apply", str(patch_file)])
     except Exception as e:
         print("Failed to apply patch:", e)
+        print("First 400 chars of patch for debugging:")
+        print(patch[:400])
         return
 
     print("Patch applied.")
@@ -228,7 +248,7 @@ def create_pr():
 
 
 def main():
-    # 1) Check for a clean working tree (ignoring .gitignore only)
+    # 1) Ensure clean working tree (ignoring .gitignore only)
     if working_tree_has_uncommitted_changes(ignore_gitignore=True):
         print("Working tree is not clean (excluding .gitignore) – aborting.")
         return
