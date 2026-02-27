@@ -132,8 +132,10 @@ def ask_model(system: str, user: str) -> str:
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ],
-        temperature=0.2,
-        max_tokens=2048,
+        temperature=0.0,         # deterministic patches
+        top_p=0.9,
+        repeat_penalty=1.05,
+        max_tokens=16000,         # let it produce full diffs
     )
     return resp.choices[0].message.content or ""
 
