@@ -145,7 +145,7 @@ def generate_and_apply_patches():
         return
 
     # For now, restrict changes to a single safe file.
-    allowed_file = "apps/api/src/main.ts"
+    allowed_file = "apps/api/src/persons.controller.ts"
 
     system = f"""
 You are a senior full-stack engineer.
