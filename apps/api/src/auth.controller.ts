@@ -52,9 +52,9 @@ export class AuthController {
     clearFailures(ip);
 
     res.cookie("invitationCode", code, {
-      httpOnly: false,
+      httpOnly: true,
       sameSite: "lax",
-      secure: false,
+      secure: true,
       maxAge: 1000 * 60 * 60 * 24 * 60,
       path: "/",
     });

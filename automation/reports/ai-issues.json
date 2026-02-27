@@ -1,0 +1,42 @@
+[
+  {
+    "severity": "high",
+    "file": "apps/api/src/auth.controller.ts",
+    "line": 34,
+    "title": "Cookie Security Vulnerability",
+    "description": "The cookie is set with `httpOnly: false` and `secure: false`, which can lead to XSS attacks and transmission over insecure channels.",
+    "suggestion": "Set `httpOnly: true` and `secure: true` for the cookie options."
+  },
+  {
+    "severity": "medium",
+    "file": "apps/api/src/content.controller.ts",
+    "line": 21,
+    "title": "Unvalidated Input in PUT Endpoint",
+    "description": "The `body.data` is not validated, which can lead to injection attacks or data corruption.",
+    "suggestion": "Add validation for `body.data` using class-validator and DTOs."
+  },
+  {
+    "severity": "medium",
+    "file": "apps/api/src/persons.controller.ts",
+    "line": 106,
+    "title": "File Upload Path Traversal Vulnerability",
+    "description": "The file upload destination is hardcoded, but there's no validation on the `id` parameter which could lead to path traversal attacks.",
+    "suggestion": "Validate and sanitize the `id` parameter before using it in file paths."
+  },
+  {
+    "severity": "medium",
+    "file": "apps/api/src/posts.controller.ts",
+    "line": 18,
+    "title": "Error Handling for Invalid Post Data",
+    "description": "The error response is returned as a plain object without throwing an exception, which can lead to inconsistent error handling.",
+    "suggestion": "Throw a `BadRequestException` with the error message instead of returning it directly."
+  },
+  {
+    "severity": "low",
+    "file": "apps/api/src/main.ts",
+    "line": 17,
+    "title": "Lack of Detailed Logging for Errors",
+    "description": "The logging middleware only logs basic request and response information without detailed error logs, which can make debugging difficult.",
+    "suggestion": "Add detailed error logging using a structured logger like `winston` or `pino`."
+  }
+]
