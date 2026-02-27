@@ -1,0 +1,8 @@
+{
+  "tool": "tsc",
+  "errors": [
+    "undefined",
+    "\u2009ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL\u2009 Command \"tsc\" not found"
+  ],
+  "count": 2
+}
