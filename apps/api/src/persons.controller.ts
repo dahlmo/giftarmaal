@@ -22,6 +22,7 @@ import * as path from "path";
 import * as fs from "fs";
 import type { Response } from "express";
 import { CreatePersonDto, UpdatePersonDto } from "./persons.dto";
+import { Logger } from "@nestjs/common";
 
 @Controller("api/persons")
 export class PersonsController {

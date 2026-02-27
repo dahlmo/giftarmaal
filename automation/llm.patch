@@ -1,0 +1,12 @@
+diff --git a/apps/api/src/persons.controller.ts b/apps/api/src/persons.controller.ts
+index 1234567..89abcde 100644
+--- a/apps/api/src/persons.controller.ts
++++ b/apps/api/src/persons.controller.ts
+@@ -10,6 +10,7 @@ import * as path from "path";
+ import * as fs from "fs";
+ import type { Response } from "express";
+ import { CreatePersonDto, UpdatePersonDto } from "./persons.dto";
++import { Logger } from "@nestjs/common";
+
+ @Controller("api/persons")
+ export class PersonsController {
