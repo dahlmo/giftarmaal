@@ -4,6 +4,7 @@ import json
 import subprocess
 from pathlib import Path
 from typing import List
+import shutil  # add this
 
 from openai import OpenAI
 
@@ -269,12 +270,23 @@ def create_pr():
     if GH_TOKEN:
         env["GITHUB_TOKEN"] = GH_TOKEN
 
+    # Push branch so you always at least get a branch, even if gh is missing
     subprocess.run(
         ["git", "push", "origin", branch_name],
         cwd=str(ROOT),
         env=env,
         check=True,
     )
+    print(f"Pushed branch {branch_name} to origin.")
+
+    # If gh CLI is not installed, stop here
+    if shutil.which("gh") is None:
+        print(
+            "GitHub CLI 'gh' not found. "
+            "Branch is pushed, but PR was not created automatically.\n"
+            f"Create a PR manually from branch '{branch_name}'."
+        )
+        return
 
     title = "Nightly bot: small improvements"
     body = (
@@ -282,13 +294,20 @@ def create_pr():
         "Please review before merging."
     )
 
-    subprocess.run(
-        ["gh", "pr", "create", "--title", title, "--body", body, "--base", "main"],
-        cwd=str(ROOT),
-        env=env,
-        check=True,
-    )
-    print("PR created.")
+    try:
+        subprocess.run(
+            ["gh", "pr", "create", "--title", title, "--body", body, "--base", "main"],
+            cwd=str(ROOT),
+            env=env,
+            check=True,
+        )
+        print("PR created.")
+    except subprocess.CalledProcessError as e:
+        print("Failed to create PR via gh CLI:", e)
+        print(
+            f"Branch '{branch_name}' is pushed. "
+            "You can create a PR manually on GitHub."
+        )
 
 
 def main():
