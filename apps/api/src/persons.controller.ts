@@ -90,7 +90,7 @@ export class PersonsController {
     if (!file) throw new NotFoundException("No image uploaded");
 
     const person = await this.prisma.person.findUnique({ where: { id } });
-    if (!person) throw new NotFoundException("Person not found");
+    if (!person) throw new NotFoundException(`Person with ID ${id} not found`);
 
     const uploadDir = "/data/uploads";
     if (!fs.existsSync(uploadDir)) {
