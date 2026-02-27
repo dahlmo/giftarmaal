@@ -16,6 +16,7 @@ MODEL = os.environ.get("MODEL_NAME", "qwen2.5-coder:32b")
 
 GH_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO_SLUG = os.environ.get("REPO_SLUG")
+FAST_MODE = os.environ.get("FAST_MODE") == "1"
 
 client = OpenAI(
     base_url=f"{OLLAMA_BASE_URL}/v1",
@@ -24,7 +25,6 @@ client = OpenAI(
 
 
 def run(cmd: List[str], cwd: Path = ROOT, check: bool = True) -> str:
-    """Run a shell command and return stdout as text."""
     res = subprocess.run(
         cmd,
         cwd=str(cwd),
@@ -37,89 +37,106 @@ def run(cmd: List[str], cwd: Path = ROOT, check: bool = True) -> str:
     return res.stdout
 
 
-def working_tree_dirty() -> bool:
-    """
-    Return True if working tree is not clean.
-    This includes untracked files (git status --porcelain).
-    """
-    status = run(["git", "status", "--porcelain"], check=False)
-    return bool(status.strip())
-
-
 def load_reports() -> str:
-    """Load all JSON scanner reports into one big text blob."""
     chunks = []
     for p in REPORT_DIR.glob("*.json"):
         try:
             data = json.loads(p.read_text(encoding="utf-8"))
         except Exception:
             continue
-        chunks.append(f"=== REPORT: {p.name} ===\n{json.dumps(data, indent=2)}\n")
+        text = json.dumps(data, indent=2)
+        if FAST_MODE:
+            text = text[:4000]
+        chunks.append(f"=== REPORT: {p.name} ===\n{text}\n")
     return "\n".join(chunks)
 
 
 def get_git_diff() -> str:
+    """Return full git diff for tracked files."""
+    return run(["git", "diff"], check=False)
+
+
+def working_tree_has_uncommitted_changes(ignore_gitignore: bool = False) -> bool:
     """
-    Get git diff for tracked changes, but ignore .gitignore diffs.
-    We only care about actual code/config changes.
+    Check if there are uncommitted changes.
+    If ignore_gitignore=True, changes only to .gitignore are ignored.
     """
-    diff = run(["git", "diff"], check=False)
-    lines = diff.splitlines()
-
-    filtered_lines = []
-    skip_block = False
-
-    for line in lines:
-        if line.startswith("diff --git "):
-            # Start of a new file block.
-            skip_block = " a/.gitignore " in line or " b/.gitignore " in line
-
-        if not skip_block:
-            filtered_lines.append(line)
-
-    return "\n".join(filtered_lines)
+    names_raw = run(["git", "diff", "--name-only"], check=False)
+    names = [n.strip() for n in names_raw.splitlines() if n.strip()]
+    if ignore_gitignore:
+        names = [n for n in names if n != ".gitignore"]
+    return bool(names)
 
 
 def get_file_content(path: str) -> str:
-    """Safely read a file relative to repo root."""
     p = ROOT / path
     if not p.exists():
         return ""
-    return p.read_text(encoding="utf-8", errors="ignore")
+    content = p.read_text(encoding="utf-8", errors="ignore")
+    if FAST_MODE and len(content) > 8000:
+        return content[:8000]
+    return content
+
+
+def normalize_patch(raw: str) -> str:
+    """Strip markdown fences and whitespace from model output."""
+    if not raw:
+        return ""
+    text = raw.strip()
+
+    # If the model wrapped the diff in ``` fences, try to extract the inner part.
+    if "```" in text:
+        parts = text.split("```")
+        # Prefer a part that contains 'diff --git'
+        candidates = [p for p in parts if "diff --git" in p]
+        if candidates:
+            text = candidates[0].strip()
+        else:
+            # Fall back to the middle part if any
+            if len(parts) >= 3:
+                text = parts[1].strip()
+
+    return text
 
 
 def ask_model(system: str, user: str) -> str:
-    """Call the local Ollama-compatible model via OpenAI client."""
     resp = client.chat.completions.create(
         model=MODEL,
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ],
-        temperature=0.2,
-        max_tokens=2048,
+        temperature=0.0,
+        max_tokens=400,
     )
     return resp.choices[0].message.content or ""
 
 
 def generate_and_apply_patches():
-    """Ask the model for a single unified diff, then apply it."""
     reports_text = load_reports()
     if not reports_text.strip():
         print("No reports to work with.")
         return
 
     system = """
-You are a senior fullstack developer. You receive:
-- scanner reports
-- relevant code files from this repo
+You are a senior full-stack engineer.
 
-Your job:
-- Find 1–3 small, concrete improvements (security, bug fix, clarity) to fix in this run.
-- Generate ONE unified 'git diff' patch in standard format.
-- The patch must be minimal but compile/run.
-- Modify existing files only – do NOT add or delete files.
-- No explanation, only raw diff.
+You are given:
+- One or more scanner reports (JSON-like text).
+- A handful of relevant code files.
+
+Your job in this run:
+- Pick 1–3 small, concrete improvements (security, bugs, clarity, robustness).
+- Generate ONE unified git patch in diff format.
+- The patch MUST be minimal but still compile / run.
+- Only modify existing files. Do NOT create or delete files.
+
+Output requirements (IMPORTANT):
+- Your ENTIRE response MUST be a valid unified git diff.
+- It MUST start with at least one line beginning with: diff --git
+- Do NOT include explanations, comments, prose, or markdown fences.
+- Do NOT wrap the diff in ``` blocks.
+- Just the raw diff.
 """
 
     key_files = [
@@ -128,7 +145,6 @@ Your job:
         "apps/api/src/persons.controller.ts",
         "apps/web/src/Home.svelte",
         "package.json",
-        "pnpm-lock.yaml",
     ]
 
     context_parts = [reports_text]
@@ -136,35 +152,32 @@ Your job:
         content = get_file_content(f)
         if not content:
             continue
-        context_parts.append(f"\n\n===== FILE: {f} =====\n{content[:20000]}")
+        context_parts.append(f"\n\n===== FILE: {f} =====\n{content}")
 
     user = "\n".join(context_parts)
 
     print("Sending to model…")
-    patch = ask_model(system, user)
-    if "diff --git" not in patch:
-        print("Did not receive a diff back, skipping.")
-        return
+    raw_patch = ask_model(system, user)
+    patch = normalize_patch(raw_patch)
 
     patch_file = ROOT / "automation" / "llm.patch"
     patch_file.write_text(patch, encoding="utf-8")
 
+    if "diff --git" not in patch:
+        print("Did not receive a 'diff --git' patch. First 400 chars:")
+        print(patch[:400])
+        return
+
     try:
         run(["git", "apply", str(patch_file)])
-        print("Patch applied.")
     except Exception as e:
         print("Failed to apply patch:", e)
         return
-    finally:
-        # Do not leave the patch file as untracked noise.
-        try:
-            patch_file.unlink()
-        except FileNotFoundError:
-            pass
+
+    print("Patch applied.")
 
 
 def run_tests() -> bool:
-    """Run project tests. Adjust command if needed."""
     try:
         run(["pnpm", "test"], check=True)
         return True
@@ -174,32 +187,18 @@ def run_tests() -> bool:
 
 
 def create_pr():
-    """
-    Create a branch, commit changes and open a PR using gh CLI.
-    Only runs if there are tracked changes.
-    """
-    # Check for any changes at all (tracked or untracked).
-    status = run(["git", "status", "--porcelain"], check=False)
-    if not status.strip():
+    diff = get_git_diff()
+    if not diff.strip():
         print("No changes after patch, no PR.")
         return
 
-    diff = get_git_diff()
-    if not diff.strip():
-        print("Only untracked/ignored changes or .gitignore diffs – no PR.")
-        return
-
-    # Create branch name based on timestamp
     branch_name = "bot/nightly-" + run(
-        ["date", "+%Y%m%d-%H%M%S"], check=False
+        ["date", "+%Y%m%d-%H%M%S"],
+        check=False,
     ).strip()
 
     run(["git", "checkout", "-b", branch_name])
-
-    # Only stage changes to already tracked files.
-    # We told the model not to create new files.
-    run(["git", "add", "-u"], check=False)
-
+    run(["git", "add", "."], check=False)
     run(["git", "commit", "-m", "chore: nightly bot improvements"])
 
     env = os.environ.copy()
@@ -229,13 +228,12 @@ def create_pr():
 
 
 def main():
-    # 1) Ensure a clean working tree before doing anything
-    if working_tree_dirty():
-        print("Working tree is not clean – aborting.")
-        run(["git", "status"], check=False)
+    # 1) Check for a clean working tree (ignoring .gitignore only)
+    if working_tree_has_uncommitted_changes(ignore_gitignore=True):
+        print("Working tree is not clean (excluding .gitignore) – aborting.")
         return
 
-    # 2) Make sure we are on up-to-date main
+    # 2) Update main
     run(["git", "checkout", "main"])
     run(["git", "pull", "--ff-only"])
 
@@ -250,12 +248,12 @@ def main():
     # 4) Generate and apply patches
     generate_and_apply_patches()
 
-    # 5) Run tests; if they fail, bail out
+    # 5) Run tests
     if not run_tests():
         print("Changes exist but tests failed – no PR.")
         return
 
-    # 6) Create PR if there are tracked changes
+    # 6) Create PR
     create_pr()
 
 
