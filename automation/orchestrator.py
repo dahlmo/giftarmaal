@@ -98,7 +98,7 @@ def get_file_content(path: str) -> str:
 
 
 def normalize_patch(raw: str) -> str:
-    """Strip markdown fences and whitespace from model output."""
+    """Strip markdown fences, fake index lines, and whitespace from model output."""
     if not raw:
         return ""
     text = raw.strip()
@@ -117,7 +117,13 @@ def normalize_patch(raw: str) -> str:
                     inner = rest
             text = inner.strip()
 
-    return text
+    # Remove "index abc123..def456 100644" lines — models invent fake hashes
+    # that cause git apply to report "corrupt patch"
+    cleaned = [
+        line for line in text.splitlines()
+        if not re.match(r"^index [0-9a-f]+\.\.[0-9a-f]+( \d+)?$", line)
+    ]
+    return "\n".join(cleaned)
 
 
 def ask_model(system: str, user: str, max_tokens: int = 16000) -> str:
@@ -237,52 +243,25 @@ Output ONLY a valid JSON array (no prose, no markdown fences, no explanation):
     print("Analyzing codebase for issues…")
     raw = ask_model(system, user, max_tokens=4000)
 
-    # Extract JSON array from response
-    issues = []
-    try:
-        match = re.search(r"\[[\s\S]*\]", raw)
-        if match:
-            issues = json.loads(match.group())
-        else:
-            issues = json.loads(raw.strip())
-    except Exception as e:
-        print(f"Failed to parse analysis JSON: {e}")
-        print("Raw response (first 500 chars):", raw[:500])
-        return []
-
-    if not isinstance(issues, list):
-        print("Unexpected analysis format (not a list).")
-        return []
-
-    # Save machine-readable issues
-    REPORT_DIR.mkdir(parents=True, exist_ok=True)
-    issues_file = REPORT_DIR / AI_ISSUES_FILE
-    issues_file.write_text(json.dumps(issues, indent=2, ensure_ascii=False), encoding="utf-8")
-
-    # Save human-readable markdown
-    md_lines = ["# AI Nightly Analysis\n\n"]
-    if not issues:
-        md_lines.append("No issues found.\n")
-    else:
-        for i, issue in enumerate(issues, 1):
-            sev = issue.get("severity", "?").upper()
-            title = issue.get("title", "Untitled")
-            file_ = issue.get("file", "")
-            line = issue.get("line", "")
-            desc = issue.get("description", "")
-            sugg = issue.get("suggestion", "")
-            loc = f"{file_}:{line}" if line else file_
-            md_lines.append(f"## {i}. [{sev}] {title}\n\n")
-            md_lines.append(f"**Location:** `{loc}`\n\n")
-            md_lines.append(f"**Issue:** {desc}\n\n")
-            md_lines.append(f"**Suggestion:** {sugg}\n\n")
-            md_lines.append("---\n\n")
-
-    suggestions_file = ROOT / "automation" / "ai-suggestions.md"
-    suggestions_file.write_text("".join(md_lines), encoding="utf-8")
+    issues = _parse_issues(raw)
+    _save_analysis(issues)
     print(f"Analysis saved → automation/ai-suggestions.md ({len(issues)} issues found)")
 
     return issues
+
+
+def _patch_targets_only(patch: str, target_file: str) -> bool:
+    """Return True if the patch only touches target_file."""
+    for line in patch.splitlines():
+        if line.startswith("diff --git "):
+            parts = line.split()
+            if len(parts) >= 4:
+                a_path = parts[2].removeprefix("a/")
+                b_path = parts[3].removeprefix("b/")
+                if a_path != target_file or b_path != target_file:
+                    print(f"Patch touches unexpected file ({a_path}) — skipping.")
+                    return False
+    return True
 
 
 def generate_and_apply_patch(issue: dict) -> bool:
@@ -323,11 +302,15 @@ Hard constraints:
 - The patch MUST compile and not break existing behavior
 - Only modify existing lines; do NOT create or delete files
 
-Output requirements (CRITICAL):
+Patch format rules (CRITICAL — violations cause apply failure):
 - Your ENTIRE response MUST be a valid unified git diff
-- It MUST start with exactly: diff --git
-- Do NOT include explanations, comments, prose, or markdown fences
-- Just the raw diff, nothing else"""
+- Start with exactly: diff --git a/{target_file} b/{target_file}
+- Do NOT include an "index" line
+- Context lines (unchanged) MUST match the file character-for-character
+- If a statement spans multiple lines in the file, keep it on multiple lines in the patch
+- Do NOT collapse multi-line blocks to a single line
+- The @@ line numbers must be accurate (count from 1)
+- Do NOT include explanations, comments, prose, or markdown fences"""
 
     user = f"===== FILE: {target_file} =====\n{file_content}"
 
@@ -344,22 +327,16 @@ Output requirements (CRITICAL):
         print(patch[:400])
         return False
 
-    # Validate only touches the allowed target file
-    for line in patch.splitlines():
-        if line.startswith("diff --git "):
-            parts = line.split()
-            if len(parts) >= 4:
-                a_path = parts[2].removeprefix("a/")
-                b_path = parts[3].removeprefix("b/")
-                if a_path != target_file or b_path != target_file:
-                    print(f"Patch touches unexpected file ({a_path}) — skipping.")
-                    return False
+    if not _patch_targets_only(patch, target_file):
+        return False
 
     patch_file = ROOT / "automation" / "llm.patch"
     patch_file.write_text(patch, encoding="utf-8")
 
+    apply_flags = ["--ignore-whitespace", "--recount"]
+
     try:
-        run(["git", "apply", "--check", str(patch_file)])
+        run(["git", "apply", "--check"] + apply_flags + [str(patch_file)])
     except Exception as e:
         print("Patch failed 'git apply --check':", e)
         print("First 400 chars of patch:")
@@ -367,7 +344,7 @@ Output requirements (CRITICAL):
         return False
 
     try:
-        run(["git", "apply", str(patch_file)])
+        run(["git", "apply"] + apply_flags + [str(patch_file)])
     except Exception as e:
         print("Failed to apply patch:", e)
         return False
