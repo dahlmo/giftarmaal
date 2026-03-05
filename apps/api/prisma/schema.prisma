@@ -72,8 +72,11 @@ model Person {
   title           String      @default("Guest")
   roles           PersonRole[]
   rsvp            RsvpStatus @default(UNKNOWN)
+  rsvpUpdatedAt   DateTime?
   dietary         String?
   comment         String?
+  firstSeen       DateTime?
+  lastSeen        DateTime?
   saveTheDateSent Boolean     @default(false)
   imagePath       String?
   thumbPath       String?

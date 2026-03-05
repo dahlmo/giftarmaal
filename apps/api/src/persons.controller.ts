@@ -1,5 +1,6 @@
 import {
   Controller,
+  Logger,
   Put,
   Param,
   UploadedFile,
@@ -25,6 +26,8 @@ import { CreatePersonDto, UpdatePersonDto } from "./persons.dto";
 
 @Controller("api/persons")
 export class PersonsController {
+  private readonly logger = new Logger(PersonsController.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly events: EventsService,
@@ -37,24 +40,31 @@ export class PersonsController {
       orderBy: { createdAt: "desc" },
       take,
     });
+    this.logger.log(`list: returned ${persons.length} persons (limit=${take})`);
     return { persons };
   }
 
   @Get(":id")
   async get(@Param("id") id: string) {
     const person = await this.prisma.person.findUnique({ where: { id } });
-    if (!person) throw new NotFoundException("Person not found");
+    if (!person) {
+      this.logger.warn(`get: person not found id=${id}`);
+      throw new NotFoundException("Person not found");
+    }
     return { person };
   }
 
   @Post()
   async create(@Body() body: CreatePersonDto) {
+    this.logger.log(`create: ${JSON.stringify(body)}`);
     const person = await this.prisma.person.create({ data: body });
+    this.logger.log(`create: created id=${person.id} name="${person.fullName}"`);
     return { person };
   }
 
   @Patch(":id")
   async update(@Param("id") id: string, @Body() updates: UpdatePersonDto) {
+    this.logger.log(`update: id=${id} updates=${JSON.stringify(updates)}`);
     const person = await this.prisma.person.update({
       where: { id },
       data: updates,
@@ -64,6 +74,7 @@ export class PersonsController {
 
   @Delete(":id")
   async delete(@Param("id") id: string) {
+    this.logger.warn(`delete: id=${id}`);
     await this.prisma.person.delete({ where: { id } });
     return { ok: true };
   }
@@ -90,7 +101,11 @@ export class PersonsController {
     if (!file) throw new NotFoundException("No image uploaded");
 
     const person = await this.prisma.person.findUnique({ where: { id } });
-    if (!person) throw new NotFoundException("Person not found");
+    if (!person) {
+      this.logger.warn(`uploadImage: person not found id=${id}`);
+      throw new NotFoundException("Person not found");
+    }
+    this.logger.log(`uploadImage: id=${id} name="${person.fullName}" size=${file.size}`);
 
     const uploadDir = "/data/uploads";
     if (!fs.existsSync(uploadDir)) {

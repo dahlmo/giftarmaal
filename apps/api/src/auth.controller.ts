@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Logger,
   Post,
   UnauthorizedException,
   Res,
@@ -18,6 +19,8 @@ import {
 
 @Controller("api/auth")
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   @Post("login")
@@ -29,6 +32,7 @@ export class AuthController {
     const ip = getClientIp(req);
 
     if (isBlocked(ip)) {
+      this.logger.warn(`Login blocked for IP ${ip} (too many failures)`);
       throw new UnauthorizedException(
         "For mange mislykkede forsøk. Prøv igjen senere.",
       );
@@ -37,6 +41,7 @@ export class AuthController {
     const code = (invitationCode || "").trim();
     if (!code) {
       registerFailure(ip);
+      this.logger.warn(`Login attempt with empty code from IP ${ip}`);
       throw new UnauthorizedException("Mangler invitasjonskode");
     }
 
@@ -46,10 +51,22 @@ export class AuthController {
 
     if (!persons.length) {
       registerFailure(ip);
+      this.logger.warn(`Login attempt with unknown code "${code}" from IP ${ip}`);
       throw new UnauthorizedException("Fant ikke invitasjonskode");
     }
 
     clearFailures(ip);
+
+    const now = new Date();
+    const names = persons.map((p) => p.friendlyName).join(", ");
+
+    // Set firstSeen only on the very first login
+    await this.prisma.person.updateMany({
+      where: { invitationCode: code, firstSeen: null },
+      data: { firstSeen: now },
+    });
+
+    this.logger.log(`Login: code="${code}" persons=[${names}] ip=${ip}`);
 
     res.cookie("invitationCode", code, {
       httpOnly: false,

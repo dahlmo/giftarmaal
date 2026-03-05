@@ -1,4 +1,4 @@
-import { Module, MiddlewareConsumer, NestModule } from "@nestjs/common";
+import { Injectable, Module, MiddlewareConsumer, NestModule, NestMiddleware } from "@nestjs/common";
 import { AppController } from "./routes";
 import { PrismaService } from "./prisma";
 import { ContentController } from "./content.controller";
@@ -9,25 +9,36 @@ import { PersonsController } from "./persons.controller";
 import { AuthController } from "./auth.controller";
 import { RsvpController } from "./rsvp.controller";
 
-function authPathsGuard(req: any, res: any, next: any) {
-  const openPaths = [
-    /^\/api\/auth\//,
-    /^\/api\/events\//,
-  ];
-  const url = req.originalUrl || req.url || "";
-  if (openPaths.some((r) => r.test(url))) return next();
+const OPEN_PATHS = [/^\/api\/auth\//, /^\/api\/events\//];
 
-  const raw = req.headers.cookie || "";
-  const map = Object.fromEntries(
-    raw.split("; ").filter(Boolean).map((c: string) => {
-      const [k, ...v] = c.split("=");
-      return [k, decodeURIComponent(v.join("="))];
-    }),
-  );
-  const code = map["invitationCode"];
-  if (!code) return res.status(401).json({ message: "Unauthorized" });
-  req.invitationCode = code;
-  next();
+@Injectable()
+class AuthMiddleware implements NestMiddleware {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async use(req: any, res: any, next: any) {
+    const url = req.originalUrl || req.url || "";
+    if (OPEN_PATHS.some((r) => r.test(url))) return next();
+
+    const raw = req.headers.cookie || "";
+    const map = Object.fromEntries(
+      raw.split("; ").filter(Boolean).map((c: string) => {
+        const [k, ...v] = c.split("=");
+        return [k, decodeURIComponent(v.join("="))];
+      }),
+    );
+    const code = map["invitationCode"];
+    if (!code) return res.status(401).json({ message: "Unauthorized" });
+
+    req.invitationCode = code;
+
+    // Fire-and-forget: update lastSeen for all persons on this invitation code
+    this.prisma.person.updateMany({
+      where: { invitationCode: code },
+      data: { lastSeen: new Date() },
+    }).catch(() => {/* non-critical */});
+
+    next();
+  }
 }
 
 @Module({
@@ -40,10 +51,10 @@ function authPathsGuard(req: any, res: any, next: any) {
     AuthController,
     RsvpController,
   ],
-  providers: [PrismaService, EventsService],
+  providers: [PrismaService, EventsService, AuthMiddleware],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(authPathsGuard).forRoutes("api");
+    consumer.apply(AuthMiddleware).forRoutes("api");
   }
 }
