@@ -393,8 +393,8 @@
     letter-spacing: 0.01em;
   }
 
-  .info-title b,
-  .info-title strong {
+  .info-title :global(b),
+  .info-title :global(strong) {
     font-weight: 800;
   }
 
@@ -522,14 +522,6 @@
     color: rgba(42, 42, 42, 0.75);
   }
 
-  /* If you want bold emphasis inside title/detail */
-  .agenda-title strong,
-  .agenda-detail strong,
-  .agenda-title b,
-  .agenda-detail b {
-    font-weight: 700;
-    color: rgba(42, 42, 42, 0.82);
-  }
 
   /* responsive */
   @media (max-width: 560px) {

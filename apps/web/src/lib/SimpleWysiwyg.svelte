@@ -146,6 +146,8 @@
 
   <div
     class="editor"
+    role="textbox"
+    aria-multiline="true"
     bind:this={el}
     contenteditable="true"
     spellcheck="true"

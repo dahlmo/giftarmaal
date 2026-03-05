@@ -333,24 +333,27 @@
     >
       <div class="field-row">
         <div class="field">
-          <label>Fornavn</label>
+          <label for="field-friendlyName">Fornavn</label>
           <input
+            id="field-friendlyName"
             placeholder="Fornavn"
             bind:value={personForm.friendlyName}
             required
           />
         </div>
         <div class="field">
-          <label>Fullt navn</label>
+          <label for="field-fullName">Fullt navn</label>
           <input
+            id="field-fullName"
             placeholder="OBS! Fullt navn (for utsendinger)"
             bind:value={personForm.fullName}
             required
           />
         </div>
         <div class="field">
-          <label>E-post</label>
+          <label for="field-email">E-post</label>
           <input
+            id="field-email"
             placeholder="E-post"
             type="email"
             bind:value={personForm.email}
@@ -361,42 +364,42 @@
 
       <div class="field-row">
         <div class="field">
-          <label>Telefon</label>
-          <input placeholder="Telefon" bind:value={personForm.phone} />
+          <label for="field-phone">Telefon</label>
+          <input id="field-phone" placeholder="Telefon" bind:value={personForm.phone} />
         </div>
         <div class="field">
-          <label>Tittel (på invitasjon)</label>
-          <input placeholder="Guest" bind:value={personForm.title} />
+          <label for="field-title">Tittel (på invitasjon)</label>
+          <input id="field-title" placeholder="Guest" bind:value={personForm.title} />
         </div>
         <div class="field">
-          <label>Invitasjonskode</label>
-          <input bind:value={personForm.invitationCode} />
+          <label for="field-invitationCode">Invitasjonskode</label>
+          <input id="field-invitationCode" bind:value={personForm.invitationCode} />
         </div>
       </div>
 
       <div class="field-row">
         <div class="field">
-          <label>Adresse 1</label>
-          <input placeholder="Adresse 1" bind:value={personForm.addressLine1} />
+          <label for="field-addressLine1">Adresse 1</label>
+          <input id="field-addressLine1" placeholder="Adresse 1" bind:value={personForm.addressLine1} />
         </div>
         <div class="field field-sm">
-          <label>Postnr</label>
-          <input placeholder="Postnr" bind:value={personForm.zipcode} />
+          <label for="field-zipcode">Postnr</label>
+          <input id="field-zipcode" placeholder="Postnr" bind:value={personForm.zipcode} />
         </div>
         <div class="field field-sm">
-          <label>Sted</label>
-          <input placeholder="Sted" bind:value={personForm.city} />
+          <label for="field-city">Sted</label>
+          <input id="field-city" placeholder="Sted" bind:value={personForm.city} />
         </div>
         <div class="field field-sm">
-          <label>Land</label>
-          <input placeholder="Land" bind:value={personForm.country} />
+          <label for="field-country">Land</label>
+          <input id="field-country" placeholder="Land" bind:value={personForm.country} />
         </div>
       </div>
 
       <div class="field-row">
         <div class="field">
-          <label>RSVP</label>
-          <select bind:value={personForm.rsvp}>
+          <label for="field-rsvp">RSVP</label>
+          <select id="field-rsvp" bind:value={personForm.rsvp}>
             <option value="NO">RSVP?</option>
             {#each rsvpOpts as o}
               <option value={o.value}>{o.label}</option>
@@ -412,7 +415,7 @@
       </div>
 
       <div class="field">
-        <label>Roller</label>
+        <span class="field-group-label">Roller</span>
         <div class="chip-row">
           {#each roles as r}
             <label class="chip">
@@ -596,6 +599,8 @@
                   <td colspan="11">
                     <div
                       class="dropzone"
+                      role="region"
+                      aria-label="Bildeopplasting"
                       on:dragover|preventDefault
                       on:drop={(e) => handleDrop(person.id, e)}
                     >
@@ -767,7 +772,8 @@
     max-width: 140px;
   }
 
-  .field label {
+  .field label,
+  .field .field-group-label {
     font-size: 0.8rem;
     font-weight: 500;
     color: #555;
@@ -978,14 +984,6 @@
 
   select {
     background: #fff;
-  }
-
-  .post-form textarea {
-    width: 100%;
-    padding: 0.6rem 0.7rem;
-    border: 1px solid #e0e4e0;
-    border-radius: 8px;
-    resize: vertical;
   }
 
   .form-actions {
