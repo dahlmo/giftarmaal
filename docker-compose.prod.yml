@@ -33,7 +33,7 @@ services:
 
   api:
     build:
-      context: .
+      context: ./apps/api
       dockerfile: apps/api/Dockerfile.prod
     command: ["sh", "-lc", "/app/entrypoint.sh"]
     environment:
