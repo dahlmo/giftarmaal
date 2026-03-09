@@ -69,9 +69,9 @@ export class AuthController {
     this.logger.log(`Login: code="${code}" persons=[${names}] ip=${ip}`);
 
     res.cookie("invitationCode", code, {
-      httpOnly: false,
+      httpOnly: true,
       sameSite: "lax",
-      secure: false,
+      secure: true,
       maxAge: 1000 * 60 * 60 * 24 * 60,
       path: "/",
     });

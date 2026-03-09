@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import difflib
 import os
 import json
 import subprocess
@@ -97,33 +98,21 @@ def get_file_content(path: str) -> str:
     return content
 
 
-def normalize_patch(raw: str) -> str:
-    """Strip markdown fences, fake index lines, and whitespace from model output."""
-    if not raw:
-        return ""
+def _strip_fences(raw: str) -> str:
+    """Remove markdown code fences from model output, preserving inner content."""
     text = raw.strip()
-
-    if "```" in text:
-        parts = text.split("```")
-        candidates = [p for p in parts if "diff --git" in p]
-        if candidates:
-            text = candidates[0].strip()
-        elif len(parts) >= 3:
-            inner = parts[1].strip()
-            # strip language tag line (e.g. "diff\n..." or "patch\n...")
-            if "\n" in inner:
-                first_line, rest = inner.split("\n", 1)
-                if not first_line.startswith("diff"):
-                    inner = rest
-            text = inner.strip()
-
-    # Remove "index abc123..def456 100644" lines — models invent fake hashes
-    # that cause git apply to report "corrupt patch"
-    cleaned = [
-        line for line in text.splitlines()
-        if not re.match(r"^index [0-9a-f]+\.\.[0-9a-f]+( \d+)?$", line)
-    ]
-    return "\n".join(cleaned)
+    if "```" not in text:
+        return text
+    parts = text.split("```")
+    if len(parts) < 3:
+        return text
+    inner = parts[1].strip()
+    # Drop optional language tag (e.g. "typescript\n...")
+    if "\n" in inner:
+        first_line, rest = inner.split("\n", 1)
+        if re.match(r"^[a-z]+$", first_line):
+            inner = rest
+    return inner.strip()
 
 
 def ask_model(system: str, user: str, max_tokens: int = 16000) -> str:
@@ -250,37 +239,22 @@ Output ONLY a valid JSON array (no prose, no markdown fences, no explanation):
     return issues
 
 
-def _patch_targets_only(patch: str, target_file: str) -> bool:
-    """Return True if the patch only touches target_file."""
-    for line in patch.splitlines():
-        if line.startswith("diff --git "):
-            parts = line.split()
-            if len(parts) >= 4:
-                a_path = parts[2].removeprefix("a/")
-                b_path = parts[3].removeprefix("b/")
-                if a_path != target_file or b_path != target_file:
-                    print(f"Patch touches unexpected file ({a_path}) — skipping.")
-                    return False
-    return True
-
-
 def generate_and_apply_patch(issue: dict) -> bool:
     """
-    Phase 2: Generate and apply a patch for a specific issue.
-    Returns True if patch was applied successfully.
+    Phase 2: Ask the model for the complete updated file, diff it locally,
+    then apply with git. Avoids all model-generated diff format problems.
     """
     target_file = issue.get("file", "")
     if not target_file:
         print("Issue has no file, skipping patch.")
         return False
 
-    # Only allow patching API source files
     if not (target_file.startswith("apps/api/src/") and target_file.endswith(".ts")):
         print(f"Skipping patch for unsupported file: {target_file}")
         return False
 
-    file_content = get_file_content(target_file)
-    if not file_content:
+    original = (ROOT / target_file).read_text(encoding="utf-8")
+    if not original.strip():
         print(f"File not found or empty: {target_file}")
         return False
 
@@ -297,46 +271,52 @@ Fix exactly this issue in {target_file}:
   Fix: {suggestion}
 
 Hard constraints:
-- You may ONLY modify the file: {target_file}
 - Make the MINIMAL change needed — do not refactor unrelated code
-- The patch MUST compile and not break existing behavior
-- Only modify existing lines; do NOT create or delete files
+- The fix MUST compile and not break existing behavior
+- Do NOT rename, delete, or create any files
 
-Patch format rules (CRITICAL — violations cause apply failure):
-- Your ENTIRE response MUST be a valid unified git diff
-- Start with exactly: diff --git a/{target_file} b/{target_file}
-- Do NOT include an "index" line
-- Context lines (unchanged) MUST match the file character-for-character
-- If a statement spans multiple lines in the file, keep it on multiple lines in the patch
-- Do NOT collapse multi-line blocks to a single line
-- The @@ line numbers must be accurate (count from 1)
-- Do NOT include explanations, comments, prose, or markdown fences"""
+Output rules (CRITICAL):
+- Return ONLY the complete, corrected file content
+- Do NOT include explanations, comments, or markdown fences — just the raw TypeScript"""
 
-    user = f"===== FILE: {target_file} =====\n{file_content}"
+    user = f"===== CURRENT FILE: {target_file} =====\n{original}"
 
-    print(f"Generating patch for: [{issue.get('severity','?').upper()}] {title}…")
-    raw_patch = ask_model(system, user)
-    patch = normalize_patch(raw_patch)
+    print(f"Generating fix for: [{issue.get('severity','?').upper()}] {title}…")
+    raw = ask_model(system, user)
+    new_content = _strip_fences(raw)
 
-    if not patch.strip():
-        print("Empty patch from model.")
+    if not new_content:
+        print("Empty response from model.")
         return False
 
-    if "diff --git" not in patch:
-        print("Model did not return a diff. First 400 chars:")
-        print(patch[:400])
+    # Normalise line endings for comparison
+    orig_lines = original.splitlines(keepends=True)
+    new_lines = (new_content.rstrip("\n") + "\n").splitlines(keepends=True)
+
+    if orig_lines == new_lines:
+        print("Model returned identical content — no changes to apply.")
         return False
 
-    if not _patch_targets_only(patch, target_file):
+    # Generate a proper unified diff locally — no model diff format needed
+    diff_lines = list(difflib.unified_diff(
+        orig_lines,
+        new_lines,
+        fromfile=f"a/{target_file}",
+        tofile=f"b/{target_file}",
+    ))
+
+    if not diff_lines:
+        print("difflib found no differences.")
         return False
+
+    patch = f"diff --git a/{target_file} b/{target_file}\n--- a/{target_file}\n+++ b/{target_file}\n"
+    patch += "".join(diff_lines[2:])  # skip the --- / +++ lines difflib already added
 
     patch_file = ROOT / "automation" / "llm.patch"
     patch_file.write_text(patch, encoding="utf-8")
 
-    apply_flags = ["--ignore-whitespace", "--recount"]
-
     try:
-        run(["git", "apply", "--check"] + apply_flags + [str(patch_file)])
+        run(["git", "apply", "--check", "--ignore-whitespace", str(patch_file)])
     except Exception as e:
         print("Patch failed 'git apply --check':", e)
         print("First 400 chars of patch:")
@@ -344,7 +324,7 @@ Patch format rules (CRITICAL — violations cause apply failure):
         return False
 
     try:
-        run(["git", "apply"] + apply_flags + [str(patch_file)])
+        run(["git", "apply", "--ignore-whitespace", str(patch_file)])
     except Exception as e:
         print("Failed to apply patch:", e)
         return False
