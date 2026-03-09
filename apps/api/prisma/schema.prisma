@@ -62,7 +62,7 @@ model Person {
   id              String      @id @default(uuid())
   fullName        String
   friendlyName    String
-  email           String
+  email           String?
   phone           String?
   invitationCode  String?
   addressLine1    String?
