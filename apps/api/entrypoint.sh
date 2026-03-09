@@ -23,7 +23,8 @@ ATTEMPTS=0
 MAX_ATTEMPTS=30
 
 echo "Waiting for database..."
-until npx -y pnpm@9.12.2 prisma:migrate deploy; do
+MIGRATE_CMD=$([ "$NODE_ENV" = "production" ] && echo "prisma:migrate:deploy" || echo "prisma:migrate")
+until npx -y pnpm@9.12.2 "$MIGRATE_CMD"; do
   ATTEMPTS=$((ATTEMPTS+1))
   if [ "$ATTEMPTS" -ge "$MAX_ATTEMPTS" ]; then
     echo "Database not reachable after $MAX_ATTEMPTS attempts; giving up."
