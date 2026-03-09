@@ -34,7 +34,7 @@ services:
   api:
     build:
       context: ./apps/api
-      dockerfile: apps/api/Dockerfile.prod
+      dockerfile: Dockerfile.prod
     command: ["sh", "-lc", "/app/entrypoint.sh"]
     environment:
       DATABASE_URL: postgresql://app:app@db:5432/app
