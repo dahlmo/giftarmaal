@@ -1,9 +1,12 @@
 FROM node:20-slim AS base
 WORKDIR /app
 ENV NODE_ENV=production
-RUN apt-get update && apt-get install -y bash ca-certificates procps && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y bash ca-certificates procps && rm -rf /var/lib/apt/lists/* \
+    && npm install -g pnpm@9.12.2
 COPY package.json pnpm-lock.yaml* ./
+RUN pnpm install --frozen-lockfile
 COPY . .
-RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod 755 /app/entrypoint.sh
+RUN pnpm run build \
+    && sed -i 's/\r$//' /app/entrypoint.sh && chmod 755 /app/entrypoint.sh
 EXPOSE 3001
 ENTRYPOINT ["/app/entrypoint.sh", "--production"]
