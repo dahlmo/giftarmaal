@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Default environment
+NODE_ENV="${NODE_ENV:-development}"
+
+# Allow flag override
+if [[ "${1:-}" == "--production" ]]; then
+  NODE_ENV="production"
+fi
+
+echo "NODE_ENV=$NODE_ENV"
+
 if [ -f /app/.env ]; then
   # shellcheck disable=SC2046
   export $(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' /app/.env | xargs) || true
@@ -23,11 +33,18 @@ until npx -y pnpm@9.12.2 prisma:migrate deploy; do
   sleep 2
 done
 
-# Optional one-time seed, only if explicitly enabled
+# Optional one-time seed
 if [ "${RUN_SEED:-false}" = "true" ]; then
   echo "Running seed..."
   npx -y pnpm@9.12.2 prisma:seed || true
 fi
 
-echo "Starting application..."
-exec npx -y pnpm@9.12.2 start
+# Choose start command
+if [ "$NODE_ENV" = "production" ]; then
+  START_CMD="start"
+else
+  START_CMD="start:dev"
+fi
+
+echo "Starting application with pnpm $START_CMD ..."
+exec npx -y pnpm@9.12.2 "$START_CMD"
