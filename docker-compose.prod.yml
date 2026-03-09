@@ -32,7 +32,9 @@ services:
     restart: unless-stopped
 
   api:
-    build: ./apps/api
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile.prod
     command: ["sh", "-lc", "/app/entrypoint.sh"]
     environment:
       DATABASE_URL: postgresql://app:app@db:5432/app
