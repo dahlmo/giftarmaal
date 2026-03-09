@@ -7,13 +7,13 @@ if [ -f /app/.env ]; then
 fi
 
 echo "Generating Prisma client..."
-npx -y pnpm@9.12.2 prisma generate
+npx -y pnpm@9.12.2 prisma:generate
 
 ATTEMPTS=0
 MAX_ATTEMPTS=30
 
 echo "Waiting for database..."
-until npx -y pnpm@9.12.2 prisma migrate deploy; do
+until npx -y pnpm@9.12.2 prisma:migrate deploy; do
   ATTEMPTS=$((ATTEMPTS+1))
   if [ "$ATTEMPTS" -ge "$MAX_ATTEMPTS" ]; then
     echo "Database not reachable after $MAX_ATTEMPTS attempts; giving up."
@@ -26,7 +26,7 @@ done
 # Optional one-time seed, only if explicitly enabled
 if [ "${RUN_SEED:-false}" = "true" ]; then
   echo "Running seed..."
-  npx -y pnpm@9.12.2 prisma db seed || true
+  npx -y pnpm@9.12.2 prisma:seed || true
 fi
 
 echo "Starting application..."
