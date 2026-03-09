@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y bash ca-certificates procps && rm -rf /
 COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install
 COPY . .
+RUN pnpm run prisma:generate
 RUN pnpm run build \
     && sed -i 's/\r$//' /app/entrypoint.sh && chmod 755 /app/entrypoint.sh
 EXPOSE 3001
