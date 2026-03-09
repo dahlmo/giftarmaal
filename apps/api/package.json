@@ -39,8 +39,5 @@
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
-  },
-  "pnpm": {
-    "neverBuiltDependencies": ["inotify"]
   }
 }

@@ -1,10 +1,9 @@
 FROM node:20-slim AS base
 WORKDIR /app
-ENV NODE_ENV=production
-RUN apt-get update && apt-get install -y bash ca-certificates procps python3 make g++ && rm -rf /var/lib/apt/lists/* \
+RUN apt-get update && apt-get install -y bash ca-certificates procps && rm -rf /var/lib/apt/lists/* \
     && npm install -g pnpm@9.12.2
 COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --include=dev
+RUN pnpm install
 COPY . .
 RUN pnpm run build \
     && sed -i 's/\r$//' /app/entrypoint.sh && chmod 755 /app/entrypoint.sh
