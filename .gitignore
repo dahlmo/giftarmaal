@@ -52,3 +52,7 @@ apps/web/public/img/logo_wo_date_light.png
 # ──────────────────────────────────────────────
 NIGHTLY_TEST.md
 automation/**/*.tmp
+
+# Div
+*.tsbuildinfo
+.vscode
