@@ -11,21 +11,9 @@
 
   $: authedStore.set(authed);
 
-  function getCookie(name: string): string | null {
-    const v = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith(name + "="));
-    return v ? decodeURIComponent(v.split("=")[1]) : null;
-  }
-
   async function checkAuth() {
     checking = true;
     try {
-      const code = getCookie("invitationCode");
-      if (!code) {
-        authed = false;
-        return;
-      }
       const res = await fetch("/api/auth/me", { credentials: "include" });
       authed = res.ok;
     } catch (e) {
@@ -57,8 +45,8 @@
     }
   }
 
-  function logout() {
-    document.cookie = "invitationCode=; Max-Age=0; path=/";
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     authed = false;
   }
 

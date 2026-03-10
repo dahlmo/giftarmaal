@@ -36,12 +36,40 @@ export class PersonsController {
     private readonly events: EventsService,
   ) {}
 
+  /** All fields returned to spouse users (entire controller is behind SpouseGuard) */
+  private static readonly SAFE_SELECT = {
+    id: true,
+    fullName: true,
+    invitationCode: true,
+    friendlyName: true,
+    email: true,
+    phone: true,
+    addressLine1: true,
+    zipcode: true,
+    city: true,
+    country: true,
+    title: true,
+    roles: true,
+    rsvp: true,
+    rsvpUpdatedAt: true,
+    dietary: true,
+    comment: true,
+    firstSeen: true,
+    lastSeen: true,
+    saveTheDateSent: true,
+    imagePath: true,
+    thumbPath: true,
+    createdAt: true,
+    updatedAt: true,
+  } as const;
+
   @Get()
   async list(@Query("limit") limit = "100") {
     const take = Math.min(Number(limit) || 100, 500);
     const persons = await this.prisma.person.findMany({
       orderBy: { createdAt: "desc" },
       take,
+      select: PersonsController.SAFE_SELECT,
     });
     this.logger.log(`list: returned ${persons.length} persons (limit=${take})`);
     return { persons };
@@ -49,7 +77,10 @@ export class PersonsController {
 
   @Get(":id")
   async get(@Param("id") id: string) {
-    const person = await this.prisma.person.findUnique({ where: { id } });
+    const person = await this.prisma.person.findUnique({
+      where: { id },
+      select: PersonsController.SAFE_SELECT,
+    });
     if (!person) {
       this.logger.warn(`get: person not found id=${id}`);
       throw new NotFoundException("Person not found");

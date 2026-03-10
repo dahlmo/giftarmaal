@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, Post, Query, UseGuards } from "@nestjs/common";
 import { PrismaService } from "./prisma";
 import { EventsService } from "./events.service";
+import { SpouseGuard } from "./spouse.guard";
 
 @Controller("api/posts")
 export class PostsController {
@@ -20,6 +21,7 @@ export class PostsController {
   }
 
   @Post()
+  @UseGuards(SpouseGuard)
   async create(@Body() body: { text: string }) {
     if (!body.text || body.text.length > 280)
       return { error: "Text required, max 280 chars" } as any;

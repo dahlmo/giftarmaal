@@ -5,9 +5,11 @@ import {
   Param,
   Body,
   NotFoundException,
+  UseGuards,
 } from "@nestjs/common";
 import { PrismaService } from "./prisma";
 import { EventsService } from "./events.service";
+import { SpouseGuard } from "./spouse.guard";
 
 @Controller("api/content")
 export class ContentController {
@@ -26,6 +28,7 @@ export class ContentController {
   }
 
   @Put(":slug")
+  @UseGuards(SpouseGuard)
   async set(
     @Param("slug") slug: string,
     @Body() body: { title?: string; data: any },
