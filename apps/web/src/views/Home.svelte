@@ -1,6 +1,7 @@
 <script lang="ts">
   import RsvpSection from "../lib/RsvpSection.svelte";
   import Template from "../lib/Template.svelte";
+  import { constants } from "../lib/constants";
 
   let rsvpOpen = false;
 </script>
@@ -46,8 +47,7 @@
   <main class="page1">
     <section class="intro">
       <p class="lead">
-        Velkommen til bryllupet vårt. Vi gleder oss til å feire dagen sammen med
-        dere.
+        {constants.welcomeMessage}
       </p>
     </section>
   </main>
