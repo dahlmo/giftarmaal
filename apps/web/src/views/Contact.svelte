@@ -35,7 +35,7 @@
     error = null;
 
     try {
-      const res = await fetch("/api/persons", { credentials: "include" });
+      const res = await fetch("/api/contacts", { credentials: "include" });
       if (!res.ok) throw new Error("Kunne ikke hente kontaktliste.");
       const data = await res.json();
       contacts = data.persons ?? [];

@@ -8,6 +8,7 @@ import { EventsService } from "./events.service";
 import { PersonsController } from "./persons.controller";
 import { AuthController } from "./auth.controller";
 import { RsvpController } from "./rsvp.controller";
+import { ContactsController } from "./contacts.controller";
 
 const OPEN_PATHS = [/^\/api\/auth\//, /^\/api\/events\//];
 
@@ -50,6 +51,7 @@ class AuthMiddleware implements NestMiddleware {
     PersonsController,
     AuthController,
     RsvpController,
+    ContactsController,
   ],
   providers: [PrismaService, EventsService, AuthMiddleware],
 })
