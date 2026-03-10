@@ -6,6 +6,7 @@
   import PracticalInfo from "./views/PracticalInfo.svelte";
   import Program from "./views/Program.svelte";
   import Contact from "./views/Contact.svelte";
+  import PrivacyPolicy from "./views/PrivacyPolicy.svelte";
   import { currentPath } from "./lib/router";
 
   onMount(() => {});
@@ -21,6 +22,8 @@
   <Program />
 {:else if path === "/kontakt"}
   <Contact />
+{:else if path === "/personvern"}
+  <PrivacyPolicy />
 {:else}
   <Home />
 {/if}

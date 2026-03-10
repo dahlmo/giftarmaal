@@ -79,6 +79,10 @@
       />
       {#if error}<div class="error">{error}</div>{/if}
       <button type="submit">Fortsett</button>
+      <p class="privacy-notice">
+        Ved å logge inn godtar du vår
+        <a href="/personvern" target="_blank" rel="noopener">personvernerklæring</a>.
+      </p>
     </form>
   </dialog>
 {/if}
@@ -164,6 +168,16 @@
     color: white;
     border: none;
     cursor: pointer;
+  }
+  .privacy-notice {
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+    color: #999;
+    text-align: center;
+  }
+  .privacy-notice a {
+    color: #888;
+    text-decoration: underline;
   }
   .error {
     color: #c33;
