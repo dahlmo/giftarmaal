@@ -81,7 +81,9 @@
       <button type="submit">Fortsett</button>
       <p class="privacy-notice">
         Ved å logge inn godtar du vår
-        <a href="/personvern" target="_blank" rel="noopener">personvernerklæring</a>.
+        <a href="/personvern" target="_blank" rel="noopener"
+          >personvernerklæring</a
+        >.
       </p>
     </form>
   </dialog>
@@ -170,7 +172,7 @@
     cursor: pointer;
   }
   .privacy-notice {
-    margin-top: 0.75rem;
+    margin-top: 0.75rem !important;
     font-size: 0.75rem;
     color: #999;
     text-align: center;

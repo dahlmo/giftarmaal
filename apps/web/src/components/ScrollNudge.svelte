@@ -23,7 +23,7 @@
 
 <style>
   .scroll-indicator {
-    margin-top: 16rem;
+    margin-top: 4rem;
     display: inline-flex;
     flex-direction: column;
     gap: 2px;

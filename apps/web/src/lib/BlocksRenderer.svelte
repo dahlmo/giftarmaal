@@ -193,7 +193,7 @@
 
 <style>
   .block {
-    margin: 2rem 0;
+    margin: 3rem 0;
   }
   .w-narrow {
     max-width: 520px;
@@ -508,7 +508,7 @@
   }
 
   .agenda-title {
-    font-size: 1.28rem;
+    font-size: 1.05rem;
     font-weight: 400;
     line-height: 1.35;
     color: rgba(42, 42, 42, 0.75);
@@ -516,12 +516,11 @@
 
   .agenda-detail {
     margin-top: 0.4rem;
-    font-size: 1.28rem;
+    font-size: 1.05rem;
     font-weight: 400;
     line-height: 1.35;
     color: rgba(42, 42, 42, 0.75);
   }
-
 
   /* responsive */
   @media (max-width: 560px) {
