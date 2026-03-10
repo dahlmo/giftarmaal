@@ -103,10 +103,6 @@
 
         <section class="block">
           <h2 class="section-title"><span>FORLOVERE</span></h2>
-          <p class="sub">
-            For spørsmål rundt utdrikningslag, overraskelser og praktiske
-            detaljer
-          </p>
           <div class="people-grid">
             {#each forlovereUi as p (p.id)}
               <div class="person">
