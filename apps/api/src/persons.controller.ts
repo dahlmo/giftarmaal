@@ -13,11 +13,13 @@ import {
   Get,
   Query,
   Res,
+  UseGuards,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { diskStorage } from "multer";
 import { PrismaService } from "./prisma";
 import { EventsService } from "./events.service";
+import { SpouseGuard } from "./spouse.guard";
 import * as sharp from "sharp";
 import * as path from "path";
 import * as fs from "fs";
@@ -25,6 +27,7 @@ import type { Response } from "express";
 import { CreatePersonDto, UpdatePersonDto } from "./persons.dto";
 
 @Controller("api/persons")
+@UseGuards(SpouseGuard)
 export class PersonsController {
   private readonly logger = new Logger(PersonsController.name);
 
