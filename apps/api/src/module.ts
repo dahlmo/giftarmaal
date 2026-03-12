@@ -27,7 +27,7 @@ class AuthMiddleware implements NestMiddleware {
         return [k, decodeURIComponent(v.join("="))];
       }),
     );
-    const code = map["invitationCode"];
+    const code = map["invitationCode"]?.toLowerCase();
     if (!code) return res.status(401).json({ message: "Unauthorized" });
 
     req.invitationCode = code;

@@ -45,5 +45,5 @@ export function generateInviteCode(): string {
   const noun = nouns[Math.floor(Math.random() * nouns.length)];
   const number = Math.floor(Math.random() * 9) + 1; // 1–9
 
-  return `${adj}${noun}${number}`;
+  return `${adj}${noun}${number}`.toLowerCase();
 }

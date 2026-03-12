@@ -38,7 +38,7 @@ export class AuthController {
       );
     }
 
-    const code = (invitationCode || "").trim();
+    const code = (invitationCode || "").trim().toLowerCase();
     if (!code) {
       registerFailure(ip);
       this.logger.warn(`Login attempt with empty code from IP ${ip}`);
