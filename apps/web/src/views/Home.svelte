@@ -42,6 +42,14 @@
         Svar på invitasjon
       </button>
     </div>
+    <a
+      class="photo-credit"
+      href="https://www.instagram.com/maniagwarek"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Foto: @maniagwarek
+    </a>
   </section>
 
   <h2 class="home-title">Velkommen til bryllup!</h2>
@@ -145,6 +153,7 @@
 
   /* ── Cover ── */
   .cover {
+    position: relative;
     min-height: 100vh;
     display: grid;
     place-items: center;
@@ -152,6 +161,20 @@
       linear-gradient(180deg, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.72)),
       url("/img/hero.jpg") center / cover no-repeat;
     border-bottom: 1px solid var(--line);
+  }
+
+  .photo-credit {
+    position: absolute;
+    bottom: 1rem;
+    right: 1.25rem;
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.35);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+  .photo-credit:hover {
+    color: rgba(255, 255, 255, 0.6);
   }
 
   .home-title {
