@@ -44,6 +44,8 @@
     </div>
   </section>
 
+  <h2 class="home-title">Velkommen til bryllup!</h2>
+
   <main class="page1">
     <section class="intro">
       <p class="lead">
@@ -152,6 +154,16 @@
     border-bottom: 1px solid var(--line);
   }
 
+  .home-title {
+    text-align: center;
+    font-size: 1.4rem;
+    font-weight: 400;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 6.5rem 0 2.5rem;
+  }
+
   .cover-inner {
     text-align: center;
     padding: 0rem 1rem 3rem;
@@ -191,13 +203,131 @@
   .page1 {
     max-width: 900px;
     margin: 0 auto;
-    padding: 2.5rem 1rem 4rem;
+    padding: 0rem 1rem 4rem;
   }
 
   .lead {
     font-size: 1.1rem;
     color: var(--muted);
     text-align: center;
+  }
+
+  /* ── Timeline ── */
+  .timeline {
+    margin-top: 8rem;
+    padding-bottom: 2rem;
+  }
+
+  .tl {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    position: relative;
+  }
+
+  /* vertical line */
+  .tl::before {
+    content: "";
+    position: absolute;
+    left: 2rem;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--line);
+  }
+
+  .tl-item {
+    position: relative;
+    padding-left: 5rem;
+    padding-bottom: 2.5rem;
+  }
+
+  .tl-item:last-child {
+    padding-bottom: 0;
+  }
+
+  /* dot on the line */
+  .tl-item::before {
+    content: "";
+    position: absolute;
+    left: calc(2rem - 4px);
+    top: 0.35rem;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 0 1px var(--line);
+  }
+
+  .tl-year {
+    position: absolute;
+    left: 0;
+    top: 0.15rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    width: 2rem;
+    text-align: center;
+  }
+
+  .tl-card h3 {
+    margin: 0.75rem 0 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .tl-card p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* larger screens: center the timeline */
+  @media (min-width: 768px) {
+    .tl::before {
+      left: 50%;
+    }
+
+    .tl-item {
+      width: 50%;
+      padding-left: 0;
+      padding-right: 2.5rem;
+      text-align: right;
+    }
+
+    .tl-item::before {
+      left: auto;
+      right: -5px;
+    }
+
+    .tl-year {
+      left: auto;
+      right: -3.5rem;
+      width: auto;
+      text-align: left;
+    }
+
+    .tl-item:nth-child(even) {
+      margin-left: 50%;
+      padding-left: 2.5rem;
+      padding-right: 0;
+      text-align: left;
+    }
+
+    .tl-item:nth-child(even)::before {
+      right: auto;
+      left: -5px;
+    }
+
+    .tl-item:nth-child(even) .tl-year {
+      right: auto;
+      left: -3.5rem;
+      text-align: right;
+    }
   }
 
   @media (max-width: 767px) {
