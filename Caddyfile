@@ -1,10 +1,6 @@
 {$DOMAIN} {
   encode zstd gzip
 
-  basic_auth {
-    sniktitt $2a$14$IaHJk57z6jTJ1HoUUMVY0ulIvgmb8aWhGZw8/P1BLjHFYBwzQo8x2
-  }
-
   handle /api/* {
     reverse_proxy api:3001
   }
