@@ -8,7 +8,7 @@
 
   export let title = "PRAKTISK INFO";
   export let lead =
-    "Under har vi samlet litt informasjon. Lurer du på noe, finner du kontaktinformasjon i menyen over.";
+    "Her finner du praktisk informasjon om transport, overnatting og andre detaljer rundt bryllupet.";
   const slug = "praktisk";
 
   let blocks: Block[] = [];

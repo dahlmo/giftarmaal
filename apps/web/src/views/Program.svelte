@@ -7,7 +7,8 @@
   import ScrollNudge from "../components/ScrollNudge.svelte";
 
   export let title = "PROGRAM";
-  export let lead = "Noter deg programmet, og forsøk å møte på tiden!";
+  export let lead =
+    "Her finner du informasjon om hvordan dagen kommer til å se ut. Programmet er foreløpig, og det kan komme endringer frem mot bryllupet.";
   const slug = "program";
 
   let blocks: Block[] = [];

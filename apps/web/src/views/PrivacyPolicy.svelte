@@ -15,7 +15,7 @@
       <p>
         Personopplysningene som samles inn i forbindelse med dette bryllupet
         behandles av brudeparet (heretter «vi» eller «oss»). For spørsmål om
-        personvern kan du kontakte oss via kontaktsiden.
+        personvern kan du kontakte oss via siden "roller".
       </p>
     </section>
 
@@ -79,7 +79,7 @@
         </li>
       </ul>
       <p>
-        For å utøve disse rettighetene, ta kontakt med oss via kontaktsiden.
+        For å utøve disse rettighetene, ta kontakt med oss via "roller"-siden".
       </p>
     </section>
 

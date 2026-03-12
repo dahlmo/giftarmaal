@@ -10,8 +10,8 @@
     { href: "/", label: "FORSIDE" },
     { href: "/praktisk", label: "PRAKTISK INFORMASJON" },
     { href: "/program", label: "PROGRAM" },
-    { href: "/kontakt", label: "KONTAKT" },
-    { href: "#", label: "ØNSKELISTE" },
+    { href: "/roller", label: "ROLLER" },
+    { href: "/gaveonsker", label: "GAVEØNSKER" },
   ];
 
   function go(href: string) {

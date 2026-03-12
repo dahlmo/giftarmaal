@@ -81,6 +81,7 @@
           comment,
         }),
       });
+      alreadySubmittedRsvp = res.ok ? true : alreadySubmittedRsvp;
       submitState = res.ok ? "success" : "error";
     } catch {
       submitState = "error";
@@ -90,10 +91,13 @@
 
 <section class="rsvp-section">
   <div class="rsvp-inner">
-    <h2 class="rsvp-title">Svar på invitasjonen</h2>
+    <h2 class="rsvp-title">
+      {alreadySubmittedRsvp ? "Takk for ditt svar" : "Svar på invitasjonen"}
+    </h2>
     <p class="rsvp-subtitle">
-      Vi ber om svar fra {members.length === 1 ? "deg" : "dere"} innen 1. mai. Det
-      er mulig å endre svar helt frem til fristen.
+      {alreadySubmittedRsvp
+        ? "Vi har registrert ditt svar under. Du kan endre dette helt frem til 1.mai."
+        : `Vi ber om svar fra ${members.length === 1 ? "deg" : "dere"} innen 1. mai. Det er mulig å endre svar helt frem til fristen.`}
     </p>
 
     {#if loading}
@@ -111,6 +115,13 @@
               {formatRoles(member.roles)}
             {/if}
           </div>
+
+          <input
+            class="rsvp-input"
+            type="text"
+            placeholder="Evt. allergier"
+            bind:value={diets[member.id]}
+          />
 
           <div class="rsvp-row">
             <label class="rsvp-radio">
@@ -132,17 +143,10 @@
               <span>Jeg kan ikke komme</span>
             </label>
           </div>
-
-          <input
-            class="rsvp-input"
-            type="text"
-            placeholder="Evt. allergier"
-            bind:value={diets[member.id]}
-          />
         {/each}
 
         <label class="rsvp-input-label">
-          <span class="label-text"> Evt. kommentarer </span>
+          <span class="label-text">Eventuelle kommentarer</span>
 
           <input
             class="rsvp-input"
