@@ -365,34 +365,61 @@
       <div class="field-row">
         <div class="field">
           <label for="field-phone">Telefon</label>
-          <input id="field-phone" placeholder="Telefon" bind:value={personForm.phone} />
+          <input
+            id="field-phone"
+            placeholder="Telefon"
+            bind:value={personForm.phone}
+          />
         </div>
         <div class="field">
           <label for="field-title">Tittel (på invitasjon)</label>
-          <input id="field-title" placeholder="Guest" bind:value={personForm.title} />
+          <input
+            id="field-title"
+            placeholder="Guest"
+            bind:value={personForm.title}
+          />
         </div>
         <div class="field">
           <label for="field-invitationCode">Invitasjonskode</label>
-          <input id="field-invitationCode" bind:value={personForm.invitationCode} />
+          <input
+            id="field-invitationCode"
+            bind:value={personForm.invitationCode}
+          />
         </div>
       </div>
 
       <div class="field-row">
         <div class="field">
           <label for="field-addressLine1">Adresse 1</label>
-          <input id="field-addressLine1" placeholder="Adresse 1" bind:value={personForm.addressLine1} />
+          <input
+            id="field-addressLine1"
+            placeholder="Adresse 1"
+            bind:value={personForm.addressLine1}
+          />
         </div>
         <div class="field field-sm">
           <label for="field-zipcode">Postnr</label>
-          <input id="field-zipcode" placeholder="Postnr" bind:value={personForm.zipcode} />
+          <input
+            id="field-zipcode"
+            placeholder="Postnr"
+            bind:value={personForm.zipcode}
+          />
         </div>
         <div class="field field-sm">
           <label for="field-city">Sted</label>
-          <input id="field-city" placeholder="Sted" bind:value={personForm.city} />
+          <input
+            id="field-city"
+            placeholder="Sted"
+            bind:value={personForm.city}
+          />
         </div>
         <div class="field field-sm">
           <label for="field-country">Land</label>
-          <input id="field-country" placeholder="Land" bind:value={personForm.country} />
+          <input
+            id="field-country"
+            placeholder="Land"
+            bind:value={personForm.country}
+          />
         </div>
       </div>
 
@@ -671,7 +698,7 @@
         <select bind:value={pageSlug} on:change={loadPage}>
           <option value="praktisk">Praktisk info</option>
           <option value="program">Program</option>
-          <option value="kontakt">Kontakt</option>
+          <option value="roller">Roller</option>
         </select>
 
         <button

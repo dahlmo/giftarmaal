@@ -3,7 +3,7 @@
   import Template from "../lib/Template.svelte";
   import { onMount } from "svelte";
 
-  export let title = "KONTAKT";
+  export let title = "ROLLER";
 
   let contacts: Person[] = [];
   let loading = true;
