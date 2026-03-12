@@ -1,6 +1,6 @@
 export const constants = {
   welcomeMessage:
-    "Velkommen til bryllupet vårt. Vi gleder oss til å feire dagen sammen med dere.",
+    "Etter ti år som kjærester er det på tide å gjøre det skikkelig offisielt! Vi gleder oss masse til å feire den store dagen med dere.",
   hostingProvider: "Upcloud Ltd",
   hostingDescription: "et finsk selskap",
   hostingLocation:
