@@ -119,7 +119,7 @@ export class PersonsController {
   @UseInterceptors(
     FileInterceptor("image", {
       storage: diskStorage({
-        destination: "/data/uploads",
+        destination: "/opt/media",
         filename: (req, file, cb) => {
           // midlertidig filnavn – vi overskriver senere
           cb(null, `temp-${Date.now()}.jpg`);
@@ -141,7 +141,7 @@ export class PersonsController {
     }
     this.logger.log(`uploadImage: id=${id} name="${person.fullName}" size=${file.size}`);
 
-    const uploadDir = "/data/uploads";
+    const uploadDir = "/opt/media";
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -193,7 +193,7 @@ export class PersonsController {
     const person = await this.prisma.person.findUnique({ where: { id } });
     if (!person) throw new NotFoundException("Person not found");
 
-    const uploadDir = "/data/uploads";
+    const uploadDir = "/opt/media";
     const filename =
       size === "thumb" ? `person-${id}-thumb.jpg` : `person-${id}-full.jpg`;
     const filePath = path.join(uploadDir, filename);
