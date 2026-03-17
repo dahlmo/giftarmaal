@@ -66,7 +66,7 @@ export class PersonsController {
   async list(@Query("limit") limit = "100") {
     const take = Math.min(Number(limit) || 100, 500);
     const persons = await this.prisma.person.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: { friendlyName: "asc" },
       take,
       select: PersonsController.SAFE_SELECT,
     });
