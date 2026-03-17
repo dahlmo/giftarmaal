@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { authed as authedStore } from "./auth";
+  import { authed as authedStore, roles as rolesStore } from "./auth";
   import { onMount } from "svelte";
   import NavMenu from "./NavMenu.svelte";
   export let style: "light" | "dark" = "dark";
@@ -16,6 +16,13 @@
     try {
       const res = await fetch("/api/auth/me", { credentials: "include" });
       authed = res.ok;
+      if (res.ok) {
+        const data = await res.json();
+        const allRoles = (data.members ?? []).flatMap((m: any) => m.roles ?? []);
+        rolesStore.set(allRoles);
+      } else {
+        rolesStore.set([]);
+      }
     } catch (e) {
       authed = false;
     } finally {
