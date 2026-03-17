@@ -619,7 +619,7 @@
                 <td>{person.email}</td>
                 <td>{person.phone}</td>
                 <td>{person.title}</td>
-                <td>{person.rsvp === "YES" ? "Ja" : "Nei"}</td>
+                <td>{person.rsvp === "YES" ? "Ja" : person.rsvp === "NO" ? "Nei" : "–"}</td>
                 <td title={formatDate(person.firstSeen)}>{timeAgo(person.firstSeen)}</td>
                 <td title={formatDate(person.lastSeen)}>{timeAgo(person.lastSeen)}</td>
 
