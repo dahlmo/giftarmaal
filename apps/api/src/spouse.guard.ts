@@ -3,8 +3,13 @@ import {
   ExecutionContext,
   ForbiddenException,
   Injectable,
+  SetMetadata,
 } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
 import { PrismaService } from "./prisma";
+
+export const SKIP_SPOUSE_GUARD = "skipSpouseGuard";
+export const SkipSpouseGuard = () => SetMetadata(SKIP_SPOUSE_GUARD, true);
 
 /**
  * Guard that restricts access to persons with the SPOUSE_TO_BE role.
@@ -12,9 +17,18 @@ import { PrismaService } from "./prisma";
  */
 @Injectable()
 export class SpouseGuard implements CanActivate {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly reflector: Reflector,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const skip = this.reflector.getAllAndOverride<boolean>(SKIP_SPOUSE_GUARD, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (skip) return true;
+
     const req = context.switchToHttp().getRequest();
     const code: string | undefined = req.invitationCode;
     if (!code) throw new ForbiddenException("Ingen tilgang");

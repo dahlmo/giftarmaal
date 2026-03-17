@@ -19,7 +19,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { diskStorage } from "multer";
 import { PrismaService } from "./prisma";
 import { EventsService } from "./events.service";
-import { SpouseGuard } from "./spouse.guard";
+import { SpouseGuard, SkipSpouseGuard } from "./spouse.guard";
 import * as sharp from "sharp";
 import * as path from "path";
 import * as fs from "fs";
@@ -75,45 +75,30 @@ export class PersonsController {
     return { persons };
   }
 
-  @Get(":id")
-  async get(@Param("id") id: string) {
-    const person = await this.prisma.person.findUnique({
-      where: { id },
-      select: PersonsController.SAFE_SELECT,
-    });
-    if (!person) {
-      this.logger.warn(`get: person not found id=${id}`);
-      throw new NotFoundException("Person not found");
+  @Get(":id/image")
+  @SkipSpouseGuard()
+  async getImage(
+    @Param("id") id: string,
+    @Query("size") size: "thumb" | "full" = "full",
+    @Res() res: Response,
+  ) {
+    const person = await this.prisma.person.findUnique({ where: { id } });
+    if (!person) throw new NotFoundException("Person not found");
+
+    const uploadDir = "/opt/media";
+    const filename =
+      size === "thumb" ? `person-${id}-thumb.jpg` : `person-${id}-full.jpg`;
+    const filePath = path.join(uploadDir, filename);
+
+    if (!fs.existsSync(filePath)) {
+      throw new NotFoundException(`Image file not found: ${filePath}`);
     }
-    return { person };
-  }
 
-  @Post()
-  async create(@Body() body: CreatePersonDto) {
-    this.logger.log(`create: ${JSON.stringify(body)}`);
-    const person = await this.prisma.person.create({ data: body });
-    this.logger.log(`create: created id=${person.id} name="${person.fullName}"`);
-    return { person };
-  }
+    res.setHeader("Content-Type", "image/jpeg");
+    res.setHeader("Cache-Control", "public, max-age=3600");
 
-  @Patch(":id")
-  async update(@Param("id") id: string, @Body() updates: UpdatePersonDto) {
-    this.logger.log(`update: id=${id} updates=${JSON.stringify(updates)}`);
-    const person = await this.prisma.person.update({
-      where: { id },
-      data: updates,
-    });
-    return { person };
+    return res.sendFile(path.resolve(filePath));
   }
-
-  @Delete(":id")
-  async delete(@Param("id") id: string) {
-    this.logger.warn(`delete: id=${id}`);
-    await this.prisma.person.delete({ where: { id } });
-    return { ok: true };
-  }
-
-  // ---------- BILDE-OPPLASTING ----------
 
   @Put(":id/image")
   @UseInterceptors(
@@ -139,7 +124,9 @@ export class PersonsController {
       this.logger.warn(`uploadImage: person not found id=${id}`);
       throw new NotFoundException("Person not found");
     }
-    this.logger.log(`uploadImage: id=${id} name="${person.fullName}" size=${file.size}`);
+    this.logger.log(
+      `uploadImage: id=${id} name="${person.fullName}" size=${file.size}`,
+    );
 
     const uploadDir = "/opt/media";
     if (!fs.existsSync(uploadDir)) {
@@ -184,28 +171,46 @@ export class PersonsController {
     };
   }
 
-  @Get(":id/image")
-  async getImage(
-    @Param("id") id: string,
-    @Query("size") size: "thumb" | "full" = "full",
-    @Res() res: Response,
-  ) {
-    const person = await this.prisma.person.findUnique({ where: { id } });
-    if (!person) throw new NotFoundException("Person not found");
-
-    const uploadDir = "/opt/media";
-    const filename =
-      size === "thumb" ? `person-${id}-thumb.jpg` : `person-${id}-full.jpg`;
-    const filePath = path.join(uploadDir, filename);
-
-    if (!fs.existsSync(filePath)) {
-      throw new NotFoundException(`Image file not found: ${filePath}`);
+  @Get(":id")
+  async get(@Param("id") id: string) {
+    const person = await this.prisma.person.findUnique({
+      where: { id },
+      select: PersonsController.SAFE_SELECT,
+    });
+    if (!person) {
+      this.logger.warn(`get: person not found id=${id}`);
+      throw new NotFoundException("Person not found");
     }
+    return { person };
+  }
 
-    res.setHeader("Content-Type", "image/jpeg");
-    // legg gjerne til caching:
-    res.setHeader("Cache-Control", "public, max-age=3600");
+  @Post()
+  async create(@Body() body: CreatePersonDto) {
+    this.logger.log(`create: ${JSON.stringify(body)}`);
+    const person = await this.prisma.person.create({ data: body });
+    this.logger.log(
+      `create: created id=${person.id} name="${person.fullName}"`,
+    );
+    return { person };
+  }
 
-    return res.sendFile(path.resolve(filePath));
+  @Patch(":id")
+  async update(@Param("id") id: string, @Body() updates: UpdatePersonDto) {
+    this.logger.log(`update: id=${id} updates=${JSON.stringify(updates)}`);
+    const person = await this.prisma.person.update({
+      where: { id },
+      data: updates,
+    });
+    this.logger.log(
+      `update: updated id=${person.id} name="${person.fullName}"`,
+    );
+    return { person };
+  }
+
+  @Delete(":id")
+  async delete(@Param("id") id: string) {
+    this.logger.warn(`delete: id=${id}`);
+    await this.prisma.person.delete({ where: { id } });
+    return { ok: true };
   }
 }
