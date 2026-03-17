@@ -7,9 +7,13 @@ export function navigate(to: string) {
   if (window.location.pathname !== to) {
     window.history.pushState({}, '', to);
     currentPath.set(to);
+    window.scrollTo(0, 0);
   }
 }
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('popstate', () => currentPath.set(window.location.pathname));
+  window.addEventListener('popstate', () => {
+    currentPath.set(window.location.pathname);
+    window.scrollTo(0, 0);
+  });
 }
