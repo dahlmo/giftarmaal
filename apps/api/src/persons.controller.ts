@@ -63,6 +63,7 @@ export class PersonsController {
   } as const;
 
   @Get()
+  @UseGuards(SpouseGuard)
   async list(@Query("limit") limit = "100") {
     const take = Math.min(Number(limit) || 100, 500);
     const persons = await this.prisma.person.findMany({
