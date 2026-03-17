@@ -19,7 +19,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { diskStorage } from "multer";
 import { PrismaService } from "./prisma";
 import { EventsService } from "./events.service";
-import { SpouseGuard, SkipSpouseGuard } from "./spouse.guard";
+import { SpouseGuard } from "./spouse.guard";
 import * as sharp from "sharp";
 import * as path from "path";
 import * as fs from "fs";
@@ -27,7 +27,6 @@ import type { Response } from "express";
 import { CreatePersonDto, UpdatePersonDto } from "./persons.dto";
 
 @Controller("api/persons")
-@UseGuards(SpouseGuard)
 export class PersonsController {
   private readonly logger = new Logger(PersonsController.name);
 
@@ -76,7 +75,6 @@ export class PersonsController {
   }
 
   @Get(":id/image")
-  @SkipSpouseGuard()
   async getImage(
     @Param("id") id: string,
     @Query("size") size: "thumb" | "full" = "full",
@@ -101,6 +99,7 @@ export class PersonsController {
   }
 
   @Put(":id/image")
+  @UseGuards(SpouseGuard)
   @UseInterceptors(
     FileInterceptor("image", {
       storage: diskStorage({
@@ -172,6 +171,7 @@ export class PersonsController {
   }
 
   @Get(":id")
+  @UseGuards(SpouseGuard)
   async get(@Param("id") id: string) {
     const person = await this.prisma.person.findUnique({
       where: { id },
@@ -195,6 +195,7 @@ export class PersonsController {
   }
 
   @Patch(":id")
+  @UseGuards(SpouseGuard)
   async update(@Param("id") id: string, @Body() updates: UpdatePersonDto) {
     this.logger.log(`update: id=${id} updates=${JSON.stringify(updates)}`);
     const person = await this.prisma.person.update({
@@ -208,6 +209,7 @@ export class PersonsController {
   }
 
   @Delete(":id")
+  @UseGuards(SpouseGuard)
   async delete(@Param("id") id: string) {
     this.logger.warn(`delete: id=${id}`);
     await this.prisma.person.delete({ where: { id } });
