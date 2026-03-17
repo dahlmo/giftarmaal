@@ -16,6 +16,29 @@
   } from "../lib/api";
   import { generateInviteCode } from "../lib/helpers";
 
+  function timeAgo(dateStr: string | null | undefined): string {
+    if (!dateStr) return "—";
+    const now = Date.now();
+    const then = new Date(dateStr).getTime();
+    const diffSec = Math.floor((now - then) / 1000);
+    if (diffSec < 60) return "nå";
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin} min siden`;
+    const diffHours = Math.floor(diffMin / 60);
+    if (diffHours < 24) return `${diffHours} ${diffHours === 1 ? "time" : "timer"} siden`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays} ${diffDays === 1 ? "dag" : "dager"} siden`;
+    const diffWeeks = Math.floor(diffDays / 7);
+    if (diffWeeks < 5) return `${diffWeeks} ${diffWeeks === 1 ? "uke" : "uker"} siden`;
+    const diffMonths = Math.floor(diffDays / 30);
+    return `${diffMonths} ${diffMonths === 1 ? "måned" : "måneder"} siden`;
+  }
+
+  function formatDate(dateStr: string | null | undefined): string {
+    if (!dateStr) return "";
+    return new Date(dateStr).toLocaleString("nb-NO");
+  }
+
   type AgendaItem = {
     id: number;
     time: string;
@@ -477,11 +500,9 @@
             <th>E-post</th>
             <th>Tlf</th>
             <th>Tittel</th>
-            <th>Kode</th>
-            <th>Adresse</th>
             <th>RSVP</th>
-            <th>Save-date</th>
-            <th>Roller</th>
+            <th>Først sett</th>
+            <th>Sist sett</th>
             <th>Bilde</th>
             <th></th>
           </tr>
@@ -490,81 +511,106 @@
           {#each persons as person (person.id)}
             {#if editingId === person.id}
               <tr class="editing-row">
-                <td>
-                  <input bind:value={editPerson.friendlyName} required />
-                  <input bind:value={editPerson.fullName} required />
-                </td>
-                <td>
-                  <input bind:value={editPerson.email} required />
-                </td>
-                <td>
-                  <input bind:value={editPerson.phone} />
-                </td>
-                <td>
-                  <input bind:value={editPerson.title} />
-                </td>
-                <td>
-                  <input bind:value={editPerson.invitationCode} />
-                </td>
-                <td class="address-cell">
-                  <input
-                    bind:value={editPerson.addressLine1}
-                    placeholder="Adresse 1"
-                  />
-                  <div class="address-row">
-                    <input
-                      bind:value={editPerson.zipcode}
-                      placeholder="Postnr"
-                    />
-                    <input bind:value={editPerson.city} placeholder="Sted" />
-                    <input bind:value={editPerson.country} placeholder="Land" />
-                  </div>
-                </td>
-                <td>
-                  <select bind:value={editPerson.rsvp}>
-                    {#each rsvpOpts as o}
-                      <option value={o.value}>{o.label}</option>
-                    {/each}
-                  </select>
-                </td>
-                <td class="center">
-                  <label class="inline-checkbox">
-                    <input
-                      type="checkbox"
-                      bind:checked={editPerson.saveTheDateSent}
-                    />
-                    <span>Sendt</span>
-                  </label>
-                </td>
-                <td>
-                  <div class="chip-column">
-                    {#each roles as r}
-                      <label class="chip chip-sm">
+                <td colspan="9">
+                  <div class="edit-grid">
+                    <div class="edit-row">
+                      <div class="edit-field">
+                        <label>Fornavn</label>
+                        <input bind:value={editPerson.friendlyName} required />
+                      </div>
+                      <div class="edit-field">
+                        <label>Fullt navn</label>
+                        <input bind:value={editPerson.fullName} required />
+                      </div>
+                      <div class="edit-field">
+                        <label>E-post</label>
+                        <input bind:value={editPerson.email} required />
+                      </div>
+                      <div class="edit-field">
+                        <label>Telefon</label>
+                        <input bind:value={editPerson.phone} />
+                      </div>
+                    </div>
+                    <div class="edit-row">
+                      <div class="edit-field">
+                        <label>Tittel</label>
+                        <input bind:value={editPerson.title} />
+                      </div>
+                      <div class="edit-field">
+                        <label>Invitasjonskode</label>
+                        <input bind:value={editPerson.invitationCode} />
+                      </div>
+                      <div class="edit-field">
+                        <label>RSVP</label>
+                        <select bind:value={editPerson.rsvp}>
+                          {#each rsvpOpts as o}
+                            <option value={o.value}>{o.label}</option>
+                          {/each}
+                        </select>
+                      </div>
+                      <div class="edit-field">
+                        <label class="inline-checkbox">
+                          <input
+                            type="checkbox"
+                            bind:checked={editPerson.saveTheDateSent}
+                          />
+                          <span>Save-the-date sendt</span>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="edit-row">
+                      <div class="edit-field">
+                        <label>Adresse</label>
                         <input
-                          type="checkbox"
-                          value={r.value}
-                          checked={editPerson.roles &&
-                            editPerson.roles.includes(r.value)}
-                          on:change={() => toggleEditRole(r.value)}
+                          bind:value={editPerson.addressLine1}
+                          placeholder="Adresse 1"
                         />
-                        <span>{r.label}</span>
-                      </label>
-                    {/each}
+                      </div>
+                      <div class="edit-field edit-field-sm">
+                        <label>Postnr</label>
+                        <input bind:value={editPerson.zipcode} />
+                      </div>
+                      <div class="edit-field edit-field-sm">
+                        <label>Sted</label>
+                        <input bind:value={editPerson.city} />
+                      </div>
+                      <div class="edit-field edit-field-sm">
+                        <label>Land</label>
+                        <input bind:value={editPerson.country} />
+                      </div>
+                    </div>
+                    <div class="edit-row">
+                      <div class="edit-field">
+                        <span class="edit-label">Roller</span>
+                        <div class="chip-row">
+                          {#each roles as r}
+                            <label class="chip chip-sm">
+                              <input
+                                type="checkbox"
+                                value={r.value}
+                                checked={editPerson.roles &&
+                                  editPerson.roles.includes(r.value)}
+                                on:change={() => toggleEditRole(r.value)}
+                              />
+                              <span>{r.label}</span>
+                            </label>
+                          {/each}
+                        </div>
+                      </div>
+                      <div class="edit-actions">
+                        <button
+                          class="ghost"
+                          type="button"
+                          on:click={() => saveEditPerson(person.id)}
+                        >
+                          Lagre
+                        </button>
+                        <button class="ghost" type="button" on:click={cancelEdit}>
+                          Avbryt
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </td>
-                <!-- tom cel­le for "Bilde" i edit-modus -->
-                <td></td>
-                <td class="actions">
-                  <button
-                    class="ghost"
-                    type="button"
-                    on:click={() => saveEditPerson(person.id)}
-                  >
-                    Lagre
-                  </button>
-                  <button class="ghost" type="button" on:click={cancelEdit}>
-                    Avbryt
-                  </button>
                 </td>
               </tr>
             {:else}
@@ -573,20 +619,9 @@
                 <td>{person.email}</td>
                 <td>{person.phone}</td>
                 <td>{person.title}</td>
-                <td>{person.invitationCode}</td>
-                <td>
-                  {person.addressLine1}, {person.zipcode}
-                  {person.city},{" "}
-                  {person.country}
-                </td>
                 <td>{person.rsvp === "YES" ? "Ja" : "Nei"}</td>
-                <td>{person.saveTheDateSent ? "Ja" : "Nei"}</td>
-                <td>
-                  {person.roles &&
-                    person.roles
-                      .map((r) => roles.find((x) => x.value === r)?.label)
-                      .join(", ")}
-                </td>
+                <td title={formatDate(person.firstSeen)}>{timeAgo(person.firstSeen)}</td>
+                <td title={formatDate(person.lastSeen)}>{timeAgo(person.lastSeen)}</td>
 
                 <!-- Bilde-knapp -->
                 <td class="center">
@@ -623,7 +658,7 @@
               {#if activeImagePersonId === person.id}
                 <tr class="upload-row">
                   <!-- må matche antall th i thead -->
-                  <td colspan="11">
+                  <td colspan="9">
                     <div
                       class="dropzone"
                       role="region"
@@ -949,6 +984,47 @@
 
   .editing-row {
     background: #fbfdfc;
+  }
+
+  .edit-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 0.5rem 0;
+  }
+
+  .edit-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .edit-field-sm {
+    flex: 0 1 100px;
+    min-width: 80px;
+  }
+
+  .edit-field label,
+  .edit-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #555;
+  }
+
+  .edit-actions {
+    display: flex;
+    gap: 0.4rem;
+    align-items: flex-end;
+    margin-left: auto;
   }
 
   .upload-row td {
