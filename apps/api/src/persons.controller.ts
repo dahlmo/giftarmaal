@@ -186,6 +186,7 @@ export class PersonsController {
   }
 
   @Post()
+  @UseGuards(SpouseGuard)
   async create(@Body() body: CreatePersonDto) {
     this.logger.log(`create: ${JSON.stringify(body)}`);
     const person = await this.prisma.person.create({ data: body });
