@@ -196,7 +196,8 @@
             <h2 class="section-title"><span>CIO</span></h2>
             <p class="sub">
               Har du spørsmål om praktiske detaljer, kan du kontakte brudens
-              søster. Hun er lokalkjent, og hjelper gjerne.
+              søster som er vår Chief Information Officer (CIO). Hun er
+              lokalkjent, og hjelper gjerne.
             </p>
             <div class="toast">
               {#if cioContact.imagePath}
