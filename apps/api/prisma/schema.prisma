@@ -90,6 +90,7 @@ enum PersonRole {
   PERSON_OF_HONOR
   VENDOR
   SPOUSE_TO_BE
+  CIO
 }
 
 enum RsvpStatus {

@@ -56,6 +56,7 @@
   );
   $: toastmasterContact =
     contacts.find((c) => c.roles.includes("TOASTMASTER")) ?? null;
+  $: cioContact = contacts.find((c) => c.roles.includes("CIO")) ?? null;
   $: forlovereUi = forlovereList.length ? forlovereList : [fallbackContact];
 </script>
 
@@ -182,6 +183,52 @@
                     >
                     <a class="link" href={"mailto:" + toastmasterContact.email}>
                       {toastmasterContact.email}
+                    </a>
+                  </div>
+                {/if}
+              </div>
+            </div>
+          </section>
+        {/if}
+
+        {#if cioContact}
+          <section class="block toast-block">
+            <h2 class="section-title"><span>CIO</span></h2>
+            <p class="sub">
+              Har du spørsmål om praktiske detaljer, kan du kontakte brudens
+              søster. Hun er lokalkjent, og hjelper gjerne.
+            </p>
+            <div class="toast">
+              {#if cioContact.imagePath}
+                <img
+                  class="avatar lg"
+                  src={cioContact.imagePath}
+                  alt={cioContact.friendlyName}
+                  loading="lazy"
+                />
+              {/if}
+              <div class="person-name">{cioContact.friendlyName}</div>
+              <div class="mini-lines">
+                {#if cioContact.phone}
+                  <div class="mini-line">
+                    <span class="icon sm" aria-hidden="true"
+                      >{@html phoneSvg}</span
+                    >
+                    <a
+                      class="link"
+                      href={"tel:" + cioContact.phone.replace(/\s/g, "")}
+                    >
+                      {cioContact.phone}
+                    </a>
+                  </div>
+                {/if}
+                {#if cioContact.email}
+                  <div class="mini-line">
+                    <span class="icon sm" aria-hidden="true"
+                      >{@html mailSvg}</span
+                    >
+                    <a class="link" href={"mailto:" + cioContact.email}>
+                      {cioContact.email}
                     </a>
                   </div>
                 {/if}

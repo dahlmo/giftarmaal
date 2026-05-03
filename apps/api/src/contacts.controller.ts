@@ -23,8 +23,10 @@ export class ContactsController {
     });
 
     const contacts = persons.map((p) => {
-      const isToastmaster = p.roles.includes("TOASTMASTER");
-      const isSpouse = p.roles.includes("SPOUSE_TO_BE");
+      const showContact =
+        p.roles.includes("TOASTMASTER") ||
+        p.roles.includes("SPOUSE_TO_BE") ||
+        p.roles.includes("CIO");
       return {
         id: p.id,
         friendlyName: p.friendlyName,
@@ -32,8 +34,8 @@ export class ContactsController {
         thumbPath: p.thumbPath,
         title: p.title,
         roles: p.roles,
-        phone: isToastmaster || isSpouse ? p.phone : undefined,
-        email: isToastmaster || isSpouse ? p.email : undefined,
+        phone: showContact ? p.phone : undefined,
+        email: showContact ? p.email : undefined,
       };
     });
 

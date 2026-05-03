@@ -40,6 +40,7 @@ terraform/**/.terraform/
 CRUSH.md
 uploads/
 *.sql
+!apps/api/prisma/migrations/**/*.sql
 
 # Wedding site static images (ignore originals)
 apps/web/public/img/logo_with_date.png

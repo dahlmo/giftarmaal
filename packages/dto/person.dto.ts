@@ -4,7 +4,8 @@ export type PersonRole =
   | "PERSON_OF_HONOR"
   | "PARENT"
   | "VENDOR"
-  | "SPOUSE_TO_BE";
+  | "SPOUSE_TO_BE"
+  | "CIO";
 
 export type RsvpStatus = "UNKNOWN" | "YES" | "NO";
 
