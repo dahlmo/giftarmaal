@@ -143,3 +143,14 @@ docker compose exec api sh -lc "cd /app && npx -y pnpm@9.12.2 pnpm --filter api 
 ```console
 docker compose exec api sh -lc "cd /app && npx -y pnpm@9.12.2 pnpm prisma migrate deploy"
 ```
+
+### Deploy on VM
+
+Its really ugly but a mans gotta do what a mans gotta do. Note to self;
+
+```console
+sudo docker-compose -f docker-compose.prod.yml build --no-cache api caddy &&
+sudo docker-compose -f docker-compose.prod.yml down &&
+sudo docker-compose -f docker-compose.prod.yml up -d &&
+sudo docker-compose -f docker-compose.prod.yml logs -f
+```

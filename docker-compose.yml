@@ -24,7 +24,7 @@ services:
     volumes:
       - ./apps/api:/app
       - /app/node_modules
-      - ./uploads:/data/uploads
+      - media:/opt/media
     depends_on:
       db:
         condition: service_healthy
@@ -54,3 +54,4 @@ services:
       - "5173:5173"
 volumes:
   db-data:
+  media:

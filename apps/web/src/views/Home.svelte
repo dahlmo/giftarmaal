@@ -2,8 +2,24 @@
   import RsvpSection from "../lib/RsvpSection.svelte";
   import Template from "../lib/Template.svelte";
   import { constants } from "../lib/constants";
+  import { onMount } from "svelte";
 
   let rsvpOpen = false;
+
+  type TimelineItem = { year: string; title: string; text: string };
+  let timelineItems: TimelineItem[] = [];
+
+  onMount(async () => {
+    try {
+      const res = await fetch("/api/content/timeline", { cache: "no-store" });
+      if (res.ok) {
+        const json = await res.json();
+        timelineItems = (json?.data?.items ?? json?.items ?? []) as TimelineItem[];
+      }
+    } catch {
+      // silently fail — timeline just won't render
+    }
+  });
 </script>
 
 <svelte:head>
@@ -60,6 +76,24 @@
         {constants.welcomeMessage}
       </p>
     </section>
+
+    {#if timelineItems.length > 0}
+      <section class="timeline">
+        <h2 class="home-title">Vår historie</h2>
+
+        <ol class="tl">
+          {#each timelineItems as item, i (i)}
+            <li class="tl-item">
+              <span class="tl-year">{item.year}</span>
+              <div class="tl-card">
+                <h3>{item.title}</h3>
+                <p>{item.text}</p>
+              </div>
+            </li>
+          {/each}
+        </ol>
+      </section>
+    {/if}
   </main>
 </Template>
 
