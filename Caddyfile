@@ -10,6 +10,15 @@ www.{$DOMAIN} {
   }
 
   root * /srv
+
+  # Hashed assets: cache for 1 year
+  @hashedAssets path /assets/*
+  header @hashedAssets Cache-Control "public, max-age=31536000, immutable"
+
+  # index.html and SPA fallback: always revalidate
+  @html path *.html /
+  header @html Cache-Control "no-cache"
+
   file_server
 
   @notFile {
