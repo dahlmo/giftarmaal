@@ -25,11 +25,14 @@
     const diffMin = Math.floor(diffSec / 60);
     if (diffMin < 60) return `${diffMin} min siden`;
     const diffHours = Math.floor(diffMin / 60);
-    if (diffHours < 24) return `${diffHours} ${diffHours === 1 ? "time" : "timer"} siden`;
+    if (diffHours < 24)
+      return `${diffHours} ${diffHours === 1 ? "time" : "timer"} siden`;
     const diffDays = Math.floor(diffHours / 24);
-    if (diffDays < 7) return `${diffDays} ${diffDays === 1 ? "dag" : "dager"} siden`;
+    if (diffDays < 7)
+      return `${diffDays} ${diffDays === 1 ? "dag" : "dager"} siden`;
     const diffWeeks = Math.floor(diffDays / 7);
-    if (diffWeeks < 5) return `${diffWeeks} ${diffWeeks === 1 ? "uke" : "uker"} siden`;
+    if (diffWeeks < 5)
+      return `${diffWeeks} ${diffWeeks === 1 ? "uke" : "uker"} siden`;
     const diffMonths = Math.floor(diffDays / 30);
     return `${diffMonths} ${diffMonths === 1 ? "måned" : "måneder"} siden`;
   }
@@ -250,7 +253,21 @@
     await loadPersons();
   }
 
-  function toggleRole(role: PersonRoles[number]) {
+  type PersonGroup = { key: string; members: Person[] };
+
+  $: personGroups = (() => {
+    const map = new Map<string, Person[]>();
+    for (const p of persons) {
+      const key = p.invitationCode || p.id;
+      map.set(key, [...(map.get(key) ?? []), p]);
+    }
+    return [...map.entries()].map(([key, members]) => ({
+      key,
+      members,
+    })) as PersonGroup[];
+  })();
+
+  function toggleRole(role: PersonRoles) {
     personForm.roles = personForm.roles || [];
     if (personForm.roles.includes(role))
       personForm.roles = personForm.roles.filter((r) => r !== role);
@@ -323,7 +340,7 @@
     }
   }
 
-  const roles: { label: string; value: PersonRoles[number] }[] = [
+  const roles: { label: string; value: PersonRoles }[] = [
     { label: "Gjest", value: "GUEST" },
     { label: "Toastmaster", value: "TOASTMASTER" },
     { label: "Forlover", value: "PERSON_OF_HONOR" },
@@ -494,60 +511,76 @@
     </form>
 
     <div class="person-list">
-      <table class="person-table">
-        <thead>
-          <tr>
-            <th>Navn</th>
-            <th>E-post</th>
-            <th>Tlf</th>
-            <th>Tittel</th>
-            <th>RSVP</th>
-            <th>Først sett</th>
-            <th>Sist sett</th>
-            <th>Bilde</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each persons as person (person.id)}
-            {#if editingId === person.id}
-              <tr class="editing-row">
-                <td colspan="9">
+      <div class="person-cols-header">
+        <span>Navn</span>
+        <span>Tlf</span>
+        <span>RSVP</span>
+        <span>Allergi</span>
+        <span>Sist sett</span>
+        <span></span>
+        <span></span>
+      </div>
+
+      <div class="person-groups">
+        {#each personGroups as group (group.key)}
+          <div class="person-group">
+            {#each group.members as person (person.id)}
+              {#if editingId === person.id}
+                <div class="editing-row">
                   <div class="edit-grid">
                     <div class="edit-row">
                       <div class="edit-field">
-                        <label>Fornavn</label>
-                        <input bind:value={editPerson.friendlyName} required />
+                        <label
+                          >Fornavn<input
+                            bind:value={editPerson.friendlyName}
+                            required
+                          /></label
+                        >
                       </div>
                       <div class="edit-field">
-                        <label>Fullt navn</label>
-                        <input bind:value={editPerson.fullName} required />
+                        <label
+                          >Fullt navn<input
+                            bind:value={editPerson.fullName}
+                            required
+                          /></label
+                        >
                       </div>
                       <div class="edit-field">
-                        <label>E-post</label>
-                        <input bind:value={editPerson.email} required />
+                        <label
+                          >E-post<input
+                            bind:value={editPerson.email}
+                            required
+                          /></label
+                        >
                       </div>
                       <div class="edit-field">
-                        <label>Telefon</label>
-                        <input bind:value={editPerson.phone} />
+                        <label
+                          >Telefon<input bind:value={editPerson.phone} /></label
+                        >
                       </div>
                     </div>
                     <div class="edit-row">
                       <div class="edit-field">
-                        <label>Tittel</label>
-                        <input bind:value={editPerson.title} />
+                        <label
+                          >Tittel<input bind:value={editPerson.title} /></label
+                        >
                       </div>
                       <div class="edit-field">
-                        <label>Invitasjonskode</label>
-                        <input bind:value={editPerson.invitationCode} />
+                        <label
+                          >Invitasjonskode<input
+                            bind:value={editPerson.invitationCode}
+                          /></label
+                        >
                       </div>
                       <div class="edit-field">
-                        <label>RSVP</label>
-                        <select bind:value={editPerson.rsvp}>
-                          {#each rsvpOpts as o}
-                            <option value={o.value}>{o.label}</option>
-                          {/each}
-                        </select>
+                        <label
+                          >RSVP
+                          <select bind:value={editPerson.rsvp}>
+                            {#each rsvpOpts as o}
+                              <option value={o.value}>{o.label}</option>
+                            {/each}
+                          </select>
+                        </label>
                       </div>
                       <div class="edit-field">
                         <label class="inline-checkbox">
@@ -561,23 +594,38 @@
                     </div>
                     <div class="edit-row">
                       <div class="edit-field">
-                        <label>Adresse</label>
-                        <input
-                          bind:value={editPerson.addressLine1}
-                          placeholder="Adresse 1"
-                        />
+                        <label
+                          >Diettbehov<input
+                            bind:value={editPerson.dietary}
+                            placeholder="Ingen"
+                          /></label
+                        >
+                      </div>
+                    </div>
+                    <div class="edit-row">
+                      <div class="edit-field">
+                        <label
+                          >Adresse<input
+                            bind:value={editPerson.addressLine1}
+                            placeholder="Adresse 1"
+                          /></label
+                        >
                       </div>
                       <div class="edit-field edit-field-sm">
-                        <label>Postnr</label>
-                        <input bind:value={editPerson.zipcode} />
+                        <label
+                          >Postnr<input
+                            bind:value={editPerson.zipcode}
+                          /></label
+                        >
                       </div>
                       <div class="edit-field edit-field-sm">
-                        <label>Sted</label>
-                        <input bind:value={editPerson.city} />
+                        <label>Sted<input bind:value={editPerson.city} /></label
+                        >
                       </div>
                       <div class="edit-field edit-field-sm">
-                        <label>Land</label>
-                        <input bind:value={editPerson.country} />
+                        <label
+                          >Land<input bind:value={editPerson.country} /></label
+                        >
                       </div>
                     </div>
                     <div class="edit-row">
@@ -603,98 +651,93 @@
                           class="ghost"
                           type="button"
                           on:click={() => saveEditPerson(person.id)}
+                          >Lagre</button
                         >
-                          Lagre
-                        </button>
-                        <button class="ghost" type="button" on:click={cancelEdit}>
-                          Avbryt
-                        </button>
+                        <button
+                          class="ghost"
+                          type="button"
+                          on:click={cancelEdit}>Avbryt</button
+                        >
                       </div>
                     </div>
                   </div>
-                </td>
-              </tr>
-            {:else}
-              <tr>
-                <td>{person.friendlyName}</td>
-                <td>{person.email}</td>
-                <td>{person.phone}</td>
-                <td>{person.title}</td>
-                <td>{person.rsvp === "YES" ? "Ja" : person.rsvp === "NO" ? "Nei" : "–"}</td>
-                <td title={formatDate(person.firstSeen)}>{timeAgo(person.firstSeen)}</td>
-                <td title={formatDate(person.lastSeen)}>{timeAgo(person.lastSeen)}</td>
-
-                <!-- Bilde-knapp -->
-                <td class="center">
-                  <button
-                    class="ghost icon-btn"
-                    type="button"
-                    title="Last opp bilde"
-                    on:click={() => toggleImageUpload(person.id)}
+                </div>
+              {:else}
+                <div class="person-row">
+                  <span class="col-name">{person.friendlyName}</span>
+                  <span class="col-phone">{person.phone ?? "—"}</span>
+                  <span class="col-rsvp"
+                    >{person.rsvp === "YES"
+                      ? "Ja"
+                      : person.rsvp === "NO"
+                        ? "Nei"
+                        : "–"}</span
                   >
-                    📸
-                  </button>
-                </td>
-
-                <td class="actions">
-                  <button
-                    class="ghost"
-                    type="button"
-                    title="Rediger"
-                    on:click={() => startEdit(person)}
+                  <span class="col-dietary">{person.dietary || "—"}</span>
+                  <span class="col-seen" title={formatDate(person.lastSeen)}
+                    >{timeAgo(person.lastSeen)}</span
                   >
-                    ✎
-                  </button>
-                  <button
-                    class="danger"
-                    type="button"
-                    title="Slett"
-                    on:click={() => doDeletePerson(person.id)}
-                  >
-                    ✕
-                  </button>
-                </td>
-              </tr>
-
-              {#if activeImagePersonId === person.id}
-                <tr class="upload-row">
-                  <!-- må matche antall th i thead -->
-                  <td colspan="9">
-                    <div
-                      class="dropzone"
-                      role="region"
-                      aria-label="Bildeopplasting"
-                      on:dragover|preventDefault
-                      on:drop={(e) => handleDrop(person.id, e)}
+                  <span class="col-img">
+                    <button
+                      class="ghost icon-btn"
+                      type="button"
+                      title="Last opp bilde"
+                      on:click={() => toggleImageUpload(person.id)}>📸</button
                     >
-                      <p>
-                        Dra inn et bilde her, eller
-                        <label class="file-link">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            on:change={(e) => handleFileInput(person.id, e)}
-                            hidden
-                          />
-                          velg fra disk
-                        </label>
-                      </p>
+                  </span>
+                  <span class="col-actions">
+                    <button
+                      class="ghost"
+                      type="button"
+                      title="Rediger"
+                      on:click={() => startEdit(person)}>✎</button
+                    >
+                    <button
+                      class="danger"
+                      type="button"
+                      title="Slett"
+                      on:click={() => doDeletePerson(person.id)}>✕</button
+                    >
+                  </span>
+                </div>
 
-                      {#if uploadingImageFor === person.id}
-                        <p>Laster opp bilde ...</p>
-                      {/if}
-
-                      {#if imageUploadError}
-                        <p class="error">{imageUploadError}</p>
-                      {/if}
-                    </div>
-                  </td>
-                </tr>
+                {#if activeImagePersonId === person.id}
+                  <div
+                    class="dropzone"
+                    role="region"
+                    aria-label="Bildeopplasting"
+                    on:dragover|preventDefault
+                    on:drop={(e) => handleDrop(person.id, e)}
+                  >
+                    <p>
+                      Dra inn et bilde her, eller
+                      <label class="file-link">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          on:change={(e) => handleFileInput(person.id, e)}
+                          hidden
+                        />
+                        velg fra disk
+                      </label>
+                    </p>
+                    {#if uploadingImageFor === person.id}<p>
+                        Laster opp bilde ...
+                      </p>{/if}
+                    {#if imageUploadError}<p class="error">
+                        {imageUploadError}
+                      </p>{/if}
+                  </div>
+                {/if}
               {/if}
+            {/each}
+
+            {#if group.members[0]?.comment}
+              <div class="group-comment">💬 {group.members[0].comment}</div>
             {/if}
-          {/each}
-        </tbody>
-      </table>
+          </div>
+        {/each}
+      </div>
     </div>
   </div>
 
@@ -907,91 +950,83 @@
     margin-top: 0.25rem;
   }
 
-  /* -------- Gjesteliste: tabell -------- */
+  /* -------- Gjesteliste: groupperte kort -------- */
 
   .person-list {
-    margin-top: 0.5rem;
+    margin-top: 0.75rem;
     overflow-x: auto;
+    --person-cols: 1.4fr 2fr 1fr 0.6fr 1fr 0.9fr 2rem 4rem;
   }
 
-  .person-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem;
-  }
-
-  .person-table th,
-  .person-table td {
-    padding: 0.5rem 0.4rem;
-    border-bottom: 1px solid #eef1ee;
-    text-align: left;
-    vertical-align: top;
-  }
-
-  .person-table th {
-    background: #f7fbf9;
+  .person-cols-header {
+    display: grid;
+    grid-template-columns: var(--person-cols);
+    gap: 0 0.5rem;
+    padding: 0 0.75rem 0.3rem;
+    font-size: 0.75rem;
     font-weight: 600;
-    color: #555;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
 
-  .person-table tr:last-child td {
+  .person-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .person-group {
+    border: 1px solid #e0e8e3;
+    border-radius: 12px;
+    background: #fff;
+    overflow: hidden;
+  }
+
+  .person-row {
+    display: grid;
+    grid-template-columns: var(--person-cols);
+    gap: 0 0.5rem;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #f0f4f1;
+  }
+
+  .person-row:last-of-type {
     border-bottom: none;
   }
 
-  .person-table input,
-  .person-table select {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 0.35rem 0.5rem;
-    border-radius: 8px;
-    border: 1px solid #e0e4e0;
-    font-size: 0.85rem;
-  }
-
-  .address-cell input {
-    margin-bottom: 0.25rem;
-  }
-
-  .address-row {
+  .col-actions {
     display: flex;
-    gap: 0.3rem;
-  }
-
-  .address-row input {
-    flex: 1;
-  }
-
-  .chip-column {
-    display: flex;
-    flex-wrap: wrap;
     gap: 0.25rem;
-  }
-
-  .inline-checkbox {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    font-size: 0.8rem;
-  }
-
-  .actions {
+    justify-content: flex-end;
     white-space: nowrap;
-    text-align: right;
   }
 
-  .center {
-    text-align: center;
+  .col-img {
+    display: flex;
+    justify-content: center;
+  }
+
+  .group-comment {
+    padding: 0.4rem 0.75rem 0.55rem;
+    font-size: 0.82rem;
+    color: #6e756f;
+    font-style: italic;
+    background: #f7fbf9;
+    border-top: 1px solid #eef2ef;
   }
 
   .editing-row {
     background: #fbfdfc;
+    padding: 0.75rem;
   }
 
   .edit-grid {
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
-    padding: 0.5rem 0;
   }
 
   .edit-row {
@@ -1021,6 +1056,16 @@
     color: #555;
   }
 
+  .edit-field input,
+  .edit-field select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.35rem 0.5rem;
+    border-radius: 8px;
+    border: 1px solid #e0e4e0;
+    font-size: 0.85rem;
+  }
+
   .edit-actions {
     display: flex;
     gap: 0.4rem;
@@ -1028,9 +1073,11 @@
     margin-left: auto;
   }
 
-  .upload-row td {
-    background: #f7fbf9;
-    border-bottom: 1px solid #e3ebe5;
+  .inline-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8rem;
   }
 
   .dropzone {
@@ -1147,10 +1194,6 @@
 
     .field-sm {
       max-width: none;
-    }
-
-    .address-row {
-      flex-direction: column;
     }
 
     .actions {

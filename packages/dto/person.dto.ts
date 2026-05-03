@@ -35,6 +35,8 @@ export type PersonDto = {
   roles: PersonRole[];
   rsvp: RsvpStatus;
   saveTheDateSent: boolean;
+  dietary?: string | null;
+  comment?: string | null;
   firstSeen: string | null;
   lastSeen: string | null;
   createdAt: string;
