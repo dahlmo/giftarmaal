@@ -329,6 +329,7 @@
     { label: "Forlover", value: "PERSON_OF_HONOR" },
     { label: "Brud/Brudgom", value: "SPOUSE_TO_BE" },
     { label: "Leverandør", value: "VENDOR" },
+    { label: "CIO", value: "CIO" },
   ];
   const rsvpOpts: { label: string; value: RsvpStatus[number] }[] = [
     { label: "Kommer", value: "YES" },
