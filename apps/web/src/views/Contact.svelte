@@ -193,11 +193,13 @@
 
         {#if cioContact}
           <section class="block toast-block">
-            <h2 class="section-title"><span>CIO</span></h2>
+            <h2 class="section-title">
+              <span>DIRECTOR OF QUESTIONS AND CHAOS</span>
+            </h2>
             <p class="sub">
               Har du spørsmål om praktiske detaljer, kan du kontakte brudens
-              søster som er vår Chief Information Officer (CIO). Hun er
-              lokalkjent, og hjelper gjerne.
+              søster som er vår <i>Director of Questions and Chaos</i>. Hun er
+              lokalkjent og hjelper gjerne.
             </p>
             <div class="toast">
               {#if cioContact.imagePath}
