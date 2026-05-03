@@ -198,8 +198,7 @@
             </h2>
             <p class="sub">
               Har du spørsmål om praktiske detaljer, kan du kontakte brudens
-              søster som er vår <i>Director of Questions and Chaos</i>. Hun er
-              lokalkjent og hjelper gjerne.
+              søster. Hun er lokalkjent og hjelper gjerne.
             </p>
             <div class="toast">
               {#if cioContact.imagePath}
@@ -323,7 +322,8 @@
     flex: 1;
   }
   .section-title span {
-    white-space: nowrap;
+    white-space: normal;
+    word-wrap: break-word;
     transform: translateY(1px);
   }
   .sub {
