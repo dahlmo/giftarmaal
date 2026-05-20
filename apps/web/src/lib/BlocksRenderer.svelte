@@ -222,7 +222,7 @@
                   <div class="agenda-text">
                     <div class="agenda-title">{item.title}</div>
                     {#if item.detail}
-                      <div class="agenda-detail">{item.detail}</div>
+                      <div class="agenda-detail">{@html item.detail}</div>
                     {/if}
                     {#if entry && open && myMembers.length > 0}
                       <div class="agenda-booking">
