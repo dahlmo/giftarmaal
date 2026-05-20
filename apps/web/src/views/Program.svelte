@@ -2,6 +2,7 @@
   import Template from "../lib/Template.svelte";
   import { sseContentSlug } from "../lib/sse";
   import BlocksRenderer from "../lib/BlocksRenderer.svelte";
+  import type { ProgramEntryInfo } from "../lib/types/program";
   import type { Block } from "../lib/blocks/types";
   import { onMount } from "svelte";
   import ScrollNudge from "../components/ScrollNudge.svelte";
@@ -12,6 +13,8 @@
   const slug = "program";
 
   let blocks: Block[] = [];
+  let programEntries: ProgramEntryInfo[] = [];
+  let myMembers: { id: string; friendlyName: string }[] = [];
   let loading = true;
   let error: string | null = null;
 
@@ -32,12 +35,23 @@
     loading = true;
     error = null;
     try {
-      const res = await fetch(`/api/content/${slug}`, { cache: "no-store" });
-      if (!res.ok) throw new Error("Kunne ikke hente innhold");
-      const json = await res.json();
+      const [contentRes, entriesRes, meRes] = await Promise.all([
+        fetch(`/api/content/${slug}`, { cache: "no-store" }),
+        fetch("/api/program-entries", { cache: "no-store" }),
+        fetch("/api/auth/me", { cache: "no-store" }),
+      ]);
+
+      if (!contentRes.ok) throw new Error("Kunne ikke hente innhold");
+      const json = await contentRes.json();
       blocks = sanitizeBlocks(
         (json?.data?.blocks ?? json?.blocks ?? []) as Block[],
       );
+
+      if (entriesRes.ok) programEntries = await entriesRes.json();
+      if (meRes.ok) {
+        const me = await meRes.json();
+        myMembers = (me?.members ?? []).map((m: any) => ({ id: m.id as string, friendlyName: m.friendlyName as string }));
+      }
     } catch (e) {
       error = e instanceof Error ? e.message : "Ukjent feil";
       blocks = [];
@@ -71,7 +85,7 @@
         {:else if error}
           <div class="error">{error}</div>
         {:else}
-          <BlocksRenderer {blocks} />
+          <BlocksRenderer {blocks} {programEntries} {myMembers} />
         {/if}
       </div>
     </section>

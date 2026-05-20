@@ -50,6 +50,19 @@
     order: number;
   };
 
+  type BookingAdminEntry = {
+    slug: string;
+    bookableSlots: number | null;
+    bookedCount: number;
+    bookings: { personId: string; personName: string; status: string }[];
+  };
+
+  function formatEntrySlug(slug: string): string {
+    const [date, time] = slug.split("_");
+    if (!date || !time) return slug;
+    return `${date} kl. ${time}`;
+  }
+
   type Post = { id: number; text: string; createdAt: string };
 
   const agenda = writable<AgendaItem[]>([]);
@@ -353,10 +366,29 @@
     { label: "Kommer ikke", value: "NO" },
   ];
 
+  let programBookings: BookingAdminEntry[] = [];
+  let programBookingsLoading = false;
+  let programBookingsError: string | null = null;
+
+  async function loadProgramBookings() {
+    programBookingsLoading = true;
+    programBookingsError = null;
+    try {
+      const res = await fetch("/api/program-entries/bookings");
+      if (!res.ok) throw new Error("Kunne ikke hente påmeldinger");
+      programBookings = await res.json();
+    } catch (e) {
+      programBookingsError = e instanceof Error ? e.message : "Ukjent feil";
+    } finally {
+      programBookingsLoading = false;
+    }
+  }
+
   onMount(async () => {
     await load();
     await loadPersons();
     await loadPage();
+    await loadProgramBookings();
   });
 </script>
 
@@ -513,12 +545,10 @@
     <div class="person-list">
       <div class="person-cols-header">
         <span>Navn</span>
-        <span>Tlf</span>
         <span>RSVP</span>
-        <span>Allergi</span>
-        <span>Sist sett</span>
         <span></span>
         <span></span>
+        <span>Tlf · Allergi · Sist sett</span>
       </div>
 
       <div class="person-groups">
@@ -665,7 +695,6 @@
               {:else}
                 <div class="person-row">
                   <span class="col-name">{person.friendlyName}</span>
-                  <span class="col-phone">{person.phone ?? "—"}</span>
                   <span class="col-rsvp"
                     >{person.rsvp === "YES"
                       ? "Ja"
@@ -673,10 +702,13 @@
                         ? "Nei"
                         : "–"}</span
                   >
-                  <span class="col-dietary">{person.dietary || "—"}</span>
-                  <span class="col-seen" title={formatDate(person.lastSeen)}
-                    >{timeAgo(person.lastSeen)}</span
-                  >
+                  <span class="col-meta">
+                    <span class="col-phone">{person.phone ?? "—"}</span>
+                    <span class="col-dietary">{person.dietary || "—"}</span>
+                    <span class="col-seen" title={formatDate(person.lastSeen)}
+                      >{timeAgo(person.lastSeen)}</span
+                    >
+                  </span>
                   <span class="col-img">
                     <button
                       class="ghost icon-btn"
@@ -767,6 +799,43 @@
         </li>
       {/each}
     </ul>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Påmeldinger program</h2>
+      <div class="panel-actions">
+        <button class="ghost" on:click={loadProgramBookings} disabled={programBookingsLoading}>
+          Last inn
+        </button>
+      </div>
+    </div>
+
+    {#if programBookingsLoading}
+      <div class="muted" style="margin-top: 0.5rem">Laster...</div>
+    {:else if programBookingsError}
+      <div class="error">{programBookingsError}</div>
+    {:else if programBookings.length === 0}
+      <div class="muted" style="margin-top: 0.5rem">Ingen påmeldinger ennå.</div>
+    {:else}
+      <div class="booking-entries">
+        {#each programBookings as entry}
+          <div class="booking-entry">
+            <div class="booking-entry-head">
+              <span class="booking-entry-slug">{formatEntrySlug(entry.slug)}</span>
+              <span class="booking-entry-count">
+                {entry.bookedCount}{entry.bookableSlots ? `/${entry.bookableSlots}` : ""} påmeldt
+              </span>
+            </div>
+            <div class="booking-attendees">
+              {#each entry.bookings as b}
+                <span class="booking-attendee">{b.personName}</span>
+              {/each}
+            </div>
+          </div>
+        {/each}
+      </div>
+    {/if}
   </div>
 
   <div class="panel">
@@ -955,7 +1024,7 @@
   .person-list {
     margin-top: 0.75rem;
     overflow-x: auto;
-    --person-cols: 1.4fr 2fr 1fr 0.6fr 1fr 0.9fr 2rem 4rem;
+    --person-cols: 2fr 0.5fr 2fr auto auto;
   }
 
   .person-cols-header {
@@ -1007,6 +1076,52 @@
   .col-img {
     display: flex;
     justify-content: center;
+  }
+
+  .col-meta {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    color: #888;
+    align-items: center;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .col-phone::after,
+  .col-dietary::after {
+    content: " ·";
+    color: #ccc;
+  }
+
+  @media (max-width: 680px) {
+    .person-list {
+      overflow-x: unset;
+    }
+
+    .person-cols-header {
+      display: none;
+    }
+
+    .person-row {
+      grid-template-columns: 1fr auto auto;
+      grid-template-areas:
+        "name rsvp actions"
+        "meta meta meta";
+      row-gap: 0.25rem;
+      padding: 0.65rem 0.75rem;
+    }
+
+    .col-name    { grid-area: name; font-weight: 500; }
+    .col-rsvp    { grid-area: rsvp; font-size: 0.82rem; color: #555; }
+    .col-img     { display: none; }
+    .col-actions { grid-area: actions; }
+    .col-meta    { grid-area: meta; flex-wrap: nowrap; overflow: hidden; }
+
+    .col-phone::after,
+    .col-dietary::after {
+      content: " ·";
+    }
   }
 
   .group-comment {
@@ -1195,9 +1310,51 @@
     .field-sm {
       max-width: none;
     }
+  }
 
-    .actions {
-      white-space: normal;
-    }
+  /* -------- Påmeldinger program -------- */
+
+  .booking-entries {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+  }
+
+  .booking-entry {
+    border: 1px solid #e0e8e3;
+    border-radius: 10px;
+    padding: 0.65rem 0.85rem;
+  }
+
+  .booking-entry-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.45rem;
+  }
+
+  .booking-entry-slug {
+    font-weight: 500;
+    font-size: 0.95rem;
+  }
+
+  .booking-entry-count {
+    font-size: 0.82rem;
+    color: #6e756f;
+  }
+
+  .booking-attendees {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .booking-attendee {
+    background: #e8f4ef;
+    color: #2f6f5e;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
   }
 </style>

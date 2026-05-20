@@ -1,7 +1,75 @@
 <script lang="ts">
   import type { Block } from "./blocks/types";
+  import type { ProgramEntryInfo } from "./types/program";
 
   export let blocks: Block[] = [];
+  export let programEntries: ProgramEntryInfo[] = [];
+  export let myMembers: { id: string; friendlyName: string }[] = [];
+
+  // Reactive map so the template can directly depend on programEntries.
+  // {#each} blocks don't track reactive vars hidden inside function bodies,
+  // so getEntry(item) never triggered re-renders — this does.
+  $: entryMap = new Map(programEntries.map((e) => [e.slug, e]));
+
+  function isBookingOpen(entry: ProgramEntryInfo): boolean {
+    const now = new Date();
+    const from = entry.bookableFrom ? new Date(entry.bookableFrom) : null;
+    const to = entry.bookableTo ? new Date(entry.bookableTo) : null;
+    return (!from || from <= now) && (!to || to >= now);
+  }
+
+  function isBooked(entry: ProgramEntryInfo, personId: string): boolean {
+    return entry.myBookings.some(
+      (b) => b.personId === personId && b.status === "BOOKED",
+    );
+  }
+
+  function bookingStatus(
+    entry: ProgramEntryInfo,
+    personId: string,
+  ): "BOOKED" | "CANCELLED" | null {
+    const b = entry.myBookings.find((b) => b.personId === personId);
+    if (!b) return null;
+    return b.status as "BOOKED" | "CANCELLED";
+  }
+
+  async function toggleBooking(
+    entrySlug: string,
+    personId: string,
+    currentlyBooked: boolean,
+  ) {
+    // Optimistic update so the toggle flips immediately
+    const newStatus = currentlyBooked ? "CANCELLED" : "BOOKED";
+    programEntries = programEntries.map((e) => {
+      if (e.slug !== entrySlug) return e;
+      const existing = e.myBookings.find((b) => b.personId === personId);
+      const myBookings = existing
+        ? e.myBookings.map((b) =>
+            b.personId === personId ? { ...b, status: newStatus } : b,
+          )
+        : [...e.myBookings, { personId, status: newStatus }];
+      return {
+        ...e,
+        bookedCount: currentlyBooked ? e.bookedCount - 1 : e.bookedCount + 1,
+        myBookings,
+      };
+    });
+
+    const method = currentlyBooked ? "DELETE" : "POST";
+    const res = await fetch(`/api/program-entries/${entrySlug}/book`, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ personId }),
+    });
+
+    if (!res.ok) {
+      // Revert by re-fetching the real state
+      const fallback = await fetch("/api/program-entries", {
+        cache: "no-store",
+      });
+      if (fallback.ok) programEntries = await fallback.json();
+    }
+  }
 
   function cls(layout?: any) {
     const w = layout?.width ?? "content";
@@ -14,6 +82,10 @@
     time: string;
     title: string;
     detail?: string;
+    bookable?: boolean;
+    bookableFrom?: string | null;
+    bookableTo?: string | null;
+    bookableSlots?: number | null;
   };
 
   function groupAgenda(items: AgendaItem[]) {
@@ -140,6 +212,10 @@
 
             <ul class="agenda-list">
               {#each day.items as item, idx (idx)}
+                {@const entry = item.bookable
+                  ? entryMap.get(`${item.date}_${item.time}`)
+                  : undefined}
+                {@const open = entry ? isBookingOpen(entry) : false}
                 <li class="agenda-item">
                   <div class="agenda-time">{item.time}</div>
 
@@ -147,6 +223,53 @@
                     <div class="agenda-title">{item.title}</div>
                     {#if item.detail}
                       <div class="agenda-detail">{item.detail}</div>
+                    {/if}
+                    {#if entry && open && myMembers.length > 0}
+                      <div class="agenda-booking">
+                        <div class="booking-heading">Påmelding</div>
+                        {#each myMembers as member}
+                          {@const booked = isBooked(entry, member.id)}
+                          {@const status = bookingStatus(entry, member.id)}
+                          <div class="booking-row">
+                            <span class="booking-name"
+                              >{member.friendlyName}</span
+                            >
+                            <button
+                              class="ios-toggle"
+                              class:on={booked}
+                              role="switch"
+                              aria-checked={booked}
+                              on:click={() =>
+                                toggleBooking(entry.slug, member.id, booked)}
+                            ></button>
+                            <span
+                              class="booking-status"
+                              class:confirmed={booked}
+                              class:unanswered={status === null}
+                            >
+                              {status === null
+                                ? "Ikke svart enda"
+                                : booked
+                                  ? "kommer!"
+                                  : "kommer ikke"}
+                            </span>
+                          </div>
+                        {/each}
+                        {#if entry.bookableSlots !== null}
+                          <div class="booking-slots">
+                            Påmeldingen stenger {entry.bookableTo
+                              ? new Date(entry.bookableTo).toLocaleString(
+                                  "no-NO",
+                                  {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                  },
+                                )
+                              : "ukjent"}.
+                          </div>
+                        {/if}
+                      </div>
                     {/if}
                   </div>
                 </li>
@@ -520,6 +643,100 @@
     font-weight: 400;
     line-height: 1.35;
     color: rgba(42, 42, 42, 0.75);
+  }
+
+  .agenda-booking {
+    margin-top: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .booking-heading {
+    font-family: "Montserrat", sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(42, 42, 42, 0.45);
+    margin-bottom: 0.15rem;
+  }
+
+  .booking-row {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+  }
+
+  .booking-name {
+    font-family: "Montserrat", sans-serif;
+    font-size: 0.9rem;
+    color: rgba(42, 42, 42, 0.75);
+    min-width: 5rem;
+  }
+
+  /* iOS-style toggle */
+  .ios-toggle {
+    position: relative;
+    flex-shrink: 0;
+    width: 42px;
+    height: 24px;
+    border-radius: 999px;
+    border: none;
+    background: rgba(42, 42, 42, 0.18);
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.22s ease;
+  }
+
+  .ios-toggle::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+    transition: transform 0.22s ease;
+  }
+
+  .ios-toggle.on {
+    background: #5a8a6a;
+  }
+
+  .ios-toggle.on::after {
+    transform: translateX(18px);
+  }
+
+  .ios-toggle:focus-visible {
+    outline: 2px solid #5a8a6a;
+    outline-offset: 2px;
+  }
+
+  .booking-status {
+    font-family: "Montserrat", sans-serif;
+    font-size: 0.85rem;
+    color: rgba(42, 42, 42, 0.45);
+    transition: color 0.18s ease;
+  }
+
+  .booking-status.confirmed {
+    color: #5a8a6a;
+    font-weight: 500;
+  }
+
+  .booking-status.unanswered {
+    font-style: italic;
+    color: rgba(42, 42, 42, 0.32);
+  }
+
+  .booking-slots {
+    font-family: "Montserrat", sans-serif;
+    font-size: 0.75rem;
+    color: rgba(42, 42, 42, 0.38);
+    margin-top: 0.2rem;
   }
 
   /* responsive */

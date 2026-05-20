@@ -12,16 +12,18 @@ export type Block = {
 
 export type Field =
   | {
-      kind: "string" | "text" | "number" | "url" | "boolean";
+      kind: "string" | "text" | "number" | "url" | "boolean" | "datetime";
       name: string;
       label: string;
       placeholder?: string;
+      showWhen?: { field: string; truthy: boolean };
     }
   | {
       kind: "select";
       name: string;
       label: string;
       options: { label: string; value: string }[];
+      showWhen?: { field: string; truthy: boolean };
     }
   | { kind: "array"; name: string; label: string; of: Field[] }
   | { kind: "blocks"; name: string; label: string; allowed?: string[] };

@@ -45,7 +45,37 @@ export class ContentController {
         data: body.data,
       },
     });
+
+    if (slug === "program") {
+      await this.syncProgramEntries(body.data);
+    }
+
     this.events.emit("content-updated", { slug });
     return updated;
+  }
+
+  private async syncProgramEntries(data: any) {
+    const blocks: any[] = data?.blocks ?? [];
+    for (const block of blocks) {
+      if (block?.type !== "agenda") continue;
+      for (const item of block?.data?.items ?? []) {
+        if (!item?.bookable) continue;
+        const entrySlug = `${item.date}_${item.time}`;
+        await this.prisma.programEntry.upsert({
+          where: { slug: entrySlug },
+          update: {
+            bookableFrom: item.bookableFrom ? new Date(item.bookableFrom) : null,
+            bookableTo: item.bookableTo ? new Date(item.bookableTo) : null,
+            bookableSlots: item.bookableSlots ?? null,
+          },
+          create: {
+            slug: entrySlug,
+            bookableFrom: item.bookableFrom ? new Date(item.bookableFrom) : null,
+            bookableTo: item.bookableTo ? new Date(item.bookableTo) : null,
+            bookableSlots: item.bookableSlots ?? null,
+          },
+        });
+      }
+    }
   }
 }

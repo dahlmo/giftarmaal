@@ -16,6 +16,9 @@ if [ -f /app/.env ]; then
   export $(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' /app/.env | xargs) || true
 fi
 
+echo "Installing dependencies..."
+npx -y pnpm@9.12.2 install --prefer-frozen-lockfile=false
+
 echo "Generating Prisma client..."
 npx -y pnpm@9.12.2 prisma:generate
 

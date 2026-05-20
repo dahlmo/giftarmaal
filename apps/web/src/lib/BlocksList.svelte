@@ -137,6 +137,7 @@
     let v: any = t.value;
     if (kind === "number") v = t.value === "" ? null : Number(t.value);
     if (kind === "boolean") v = (t as HTMLInputElement).checked;
+    if (kind === "datetime") v = t.value ? new Date(t.value).toISOString() : null;
 
     const copy = structuredClone(value) as Block[];
     const b = copy[i];
@@ -321,54 +322,116 @@
                   <div class="array-row">
                     <div class="array-fields">
                       {#each f.of as sf (sf.name)}
-                        {#if sf.kind === "string"}
-                          <label class="full">
-                            <span>{sf.label}</span>
-                            <input
-                              value={row?.[sf.name] ?? ""}
-                              on:input={(e) =>
-                                updateArrayField(
-                                  i,
-                                  f.name,
-                                  idx,
-                                  sf.name,
-                                  e,
-                                  sf.kind,
-                                )}
-                            />
-                          </label>
-                        {:else if sf.kind === "text"}
-                          <div class="full">
-                            <span class="lbl">{sf.label}</span>
-                            <SimpleWysiwyg
-                              value={row?.[sf.name] ?? ""}
-                              placeholder={sf.placeholder ?? ""}
-                              on:input={(e) =>
-                                setArrayFieldValue(
-                                  i,
-                                  f.name,
-                                  idx,
-                                  sf.name,
-                                  e.detail.value,
-                                )}
-                            />
-                          </div>
-                        {:else}
-                          <label class="full">
-                            <span>{sf.label}</span>
-                            <input
-                              value={row?.[sf.name] ?? ""}
-                              on:input={(e) =>
-                                updateArrayField(
-                                  i,
-                                  f.name,
-                                  idx,
-                                  sf.name,
-                                  e,
-                                  sf.kind,
-                                )}
-                            />
-                          </label>
+                        {@const hidden =
+                          sf.showWhen &&
+                          !!row?.[sf.showWhen.field] !== sf.showWhen.truthy}
+                        {#if !hidden}
+                          {#if sf.kind === "boolean"}
+                            <label class="check">
+                              <input
+                                type="checkbox"
+                                checked={!!row?.[sf.name]}
+                                on:change={(e) =>
+                                  updateArrayField(
+                                    i,
+                                    f.name,
+                                    idx,
+                                    sf.name,
+                                    e,
+                                    sf.kind,
+                                  )}
+                              />
+                              <span>{sf.label}</span>
+                            </label>
+                          {:else if sf.kind === "datetime"}
+                            <label class="full">
+                              <span>{sf.label}</span>
+                              <input
+                                type="datetime-local"
+                                value={row?.[sf.name]
+                                  ? new Date(row[sf.name])
+                                      .toISOString()
+                                      .slice(0, 16)
+                                  : ""}
+                                on:change={(e) =>
+                                  updateArrayField(
+                                    i,
+                                    f.name,
+                                    idx,
+                                    sf.name,
+                                    e,
+                                    sf.kind,
+                                  )}
+                              />
+                            </label>
+                          {:else if sf.kind === "number"}
+                            <label class="full">
+                              <span>{sf.label}</span>
+                              <input
+                                type="number"
+                                value={row?.[sf.name] ?? ""}
+                                placeholder={sf.placeholder ?? ""}
+                                on:input={(e) =>
+                                  updateArrayField(
+                                    i,
+                                    f.name,
+                                    idx,
+                                    sf.name,
+                                    e,
+                                    sf.kind,
+                                  )}
+                              />
+                            </label>
+                          {:else if sf.kind === "string"}
+                            <label class="full">
+                              <span>{sf.label}</span>
+                              <input
+                                value={row?.[sf.name] ?? ""}
+                                placeholder={sf.placeholder ?? ""}
+                                on:input={(e) =>
+                                  updateArrayField(
+                                    i,
+                                    f.name,
+                                    idx,
+                                    sf.name,
+                                    e,
+                                    sf.kind,
+                                  )}
+                              />
+                            </label>
+                          {:else if sf.kind === "text"}
+                            <div class="full">
+                              <span class="lbl">{sf.label}</span>
+                              <SimpleWysiwyg
+                                value={row?.[sf.name] ?? ""}
+                                placeholder={sf.placeholder ?? ""}
+                                on:input={(e) =>
+                                  setArrayFieldValue(
+                                    i,
+                                    f.name,
+                                    idx,
+                                    sf.name,
+                                    e.detail.value,
+                                  )}
+                              />
+                            </div>
+                          {:else}
+                            <label class="full">
+                              <span>{sf.label}</span>
+                              <input
+                                value={row?.[sf.name] ?? ""}
+                                on:input={(e) =>
+                                  updateArrayField(
+                                    i,
+                                    f.name,
+                                    idx,
+                                    sf.name,
+                                    e,
+                                    sf.kind,
+                                  )}
+                              />
+                            </label>
+                          {/if}
                         {/if}
                       {/each}
                     </div>
