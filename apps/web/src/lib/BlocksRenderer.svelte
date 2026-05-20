@@ -646,7 +646,7 @@
   }
 
   .agenda-booking {
-    margin-top: 0.9rem;
+    margin-top: 1.9rem;
     display: flex;
     flex-direction: column;
     gap: 0.45rem;
