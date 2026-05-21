@@ -54,7 +54,13 @@
     slug: string;
     bookableSlots: number | null;
     bookedCount: number;
-    bookings: { personId: string; personName: string; status: string }[];
+    bookings: {
+      personId: string;
+      personName: string;
+      status: string;
+      createdAt: string;
+      lastUpdatedAt: string;
+    }[];
   };
 
   function formatEntrySlug(slug: string): string {
@@ -827,11 +833,30 @@
                 {entry.bookedCount}{entry.bookableSlots ? `/${entry.bookableSlots}` : ""} påmeldt
               </span>
             </div>
-            <div class="booking-attendees">
-              {#each entry.bookings as b}
-                <span class="booking-attendee">{b.personName}</span>
-              {/each}
-            </div>
+            <table class="booking-table">
+              <thead>
+                <tr>
+                  <th>Navn</th>
+                  <th>Status</th>
+                  <th>Opprinnelig svar</th>
+                  <th>Endret svar</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each entry.bookings as b}
+                  <tr>
+                    <td>{b.personName}</td>
+                    <td>
+                      <span class="booking-badge" class:badge-yes={b.status === "BOOKED"} class:badge-no={b.status === "CANCELLED"}>
+                        {b.status === "BOOKED" ? "Ja" : "Nei"}
+                      </span>
+                    </td>
+                    <td title={formatDate(b.createdAt)}>{timeAgo(b.createdAt)}</td>
+                    <td title={formatDate(b.lastUpdatedAt)}>{timeAgo(b.lastUpdatedAt)}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
           </div>
         {/each}
       </div>
@@ -1344,17 +1369,49 @@
     color: #6e756f;
   }
 
-  .booking-attendees {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
+  .booking-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin-top: 0.1rem;
   }
 
-  .booking-attendee {
+  .booking-table th {
+    text-align: left;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #888;
+    padding: 0.3rem 0.5rem;
+    border-bottom: 1px solid #e8ece8;
+  }
+
+  .booking-table td {
+    padding: 0.4rem 0.5rem;
+    color: #333;
+    border-bottom: 1px solid #f2f5f2;
+  }
+
+  .booking-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .booking-badge {
+    display: inline-block;
+    padding: 0.1rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 500;
+  }
+
+  .badge-yes {
     background: #e8f4ef;
     color: #2f6f5e;
-    padding: 0.15rem 0.6rem;
-    border-radius: 999px;
-    font-size: 0.82rem;
+  }
+
+  .badge-no {
+    background: #fce8e8;
+    color: #b94040;
   }
 </style>

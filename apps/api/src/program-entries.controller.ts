@@ -59,10 +59,10 @@ export class ProgramEntriesController {
     const entries = await this.prisma.programEntry.findMany({
       include: {
         bookings: {
-          where: { status: "BOOKED" },
           include: {
             person: { select: { id: true, friendlyName: true } },
           },
+          orderBy: { createdAt: "asc" },
         },
       },
     });
@@ -72,11 +72,13 @@ export class ProgramEntriesController {
       .map((e) => ({
         slug: e.slug,
         bookableSlots: e.bookableSlots,
-        bookedCount: e.bookings.length,
+        bookedCount: e.bookings.filter((b) => b.status === "BOOKED").length,
         bookings: e.bookings.map((b) => ({
           personId: b.personId,
           personName: b.person.friendlyName,
           status: b.status,
+          createdAt: b.createdAt,
+          lastUpdatedAt: b.lastUpdatedAt,
         })),
       }));
   }
