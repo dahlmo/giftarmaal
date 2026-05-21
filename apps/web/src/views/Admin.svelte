@@ -811,7 +811,11 @@
     <div class="panel-head">
       <h2>Påmeldinger program</h2>
       <div class="panel-actions">
-        <button class="ghost" on:click={loadProgramBookings} disabled={programBookingsLoading}>
+        <button
+          class="ghost"
+          on:click={loadProgramBookings}
+          disabled={programBookingsLoading}
+        >
           Last inn
         </button>
       </div>
@@ -822,15 +826,21 @@
     {:else if programBookingsError}
       <div class="error">{programBookingsError}</div>
     {:else if programBookings.length === 0}
-      <div class="muted" style="margin-top: 0.5rem">Ingen påmeldinger ennå.</div>
+      <div class="muted" style="margin-top: 0.5rem">
+        Ingen påmeldinger ennå.
+      </div>
     {:else}
       <div class="booking-entries">
         {#each programBookings as entry}
           <div class="booking-entry">
             <div class="booking-entry-head">
-              <span class="booking-entry-slug">{formatEntrySlug(entry.slug)}</span>
+              <span class="booking-entry-slug"
+                >{formatEntrySlug(entry.slug)}</span
+              >
               <span class="booking-entry-count">
-                {entry.bookedCount}{entry.bookableSlots ? `/${entry.bookableSlots}` : ""} påmeldt
+                {entry.bookedCount}{entry.bookableSlots
+                  ? `/${entry.bookableSlots}`
+                  : ""} påmeldt
               </span>
             </div>
             <table class="booking-table">
@@ -847,12 +857,22 @@
                   <tr>
                     <td>{b.personName}</td>
                     <td>
-                      <span class="booking-badge" class:badge-yes={b.status === "BOOKED"} class:badge-no={b.status === "CANCELLED"}>
+                      <span
+                        class="booking-badge"
+                        class:badge-yes={b.status === "BOOKED"}
+                        class:badge-no={b.status === "CANCELLED"}
+                      >
                         {b.status === "BOOKED" ? "Ja" : "Nei"}
                       </span>
                     </td>
-                    <td title={formatDate(b.createdAt)}>{timeAgo(b.createdAt)}</td>
-                    <td title={formatDate(b.lastUpdatedAt)}>{timeAgo(b.lastUpdatedAt)}</td>
+                    <td title={formatDate(b.createdAt)}
+                      >{timeAgo(b.createdAt)}</td
+                    >
+                    <td title={formatDate(b.lastUpdatedAt)}
+                      >{b.lastUpdatedAt !== b.createdAt
+                        ? timeAgo(b.lastUpdatedAt)
+                        : "-"}</td
+                    >
                   </tr>
                 {/each}
               </tbody>
@@ -1137,11 +1157,26 @@
       padding: 0.65rem 0.75rem;
     }
 
-    .col-name    { grid-area: name; font-weight: 500; }
-    .col-rsvp    { grid-area: rsvp; font-size: 0.82rem; color: #555; }
-    .col-img     { display: none; }
-    .col-actions { grid-area: actions; }
-    .col-meta    { grid-area: meta; flex-wrap: nowrap; overflow: hidden; }
+    .col-name {
+      grid-area: name;
+      font-weight: 500;
+    }
+    .col-rsvp {
+      grid-area: rsvp;
+      font-size: 0.82rem;
+      color: #555;
+    }
+    .col-img {
+      display: none;
+    }
+    .col-actions {
+      grid-area: actions;
+    }
+    .col-meta {
+      grid-area: meta;
+      flex-wrap: nowrap;
+      overflow: hidden;
+    }
 
     .col-phone::after,
     .col-dietary::after {
