@@ -492,14 +492,22 @@
   }
 
   @keyframes cardUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes cardUpNudge {
+    0%   { opacity: 0; transform: translateY(20px); }
+    40%  { opacity: 1; transform: translateY(0); }
+    55%  { transform: translateY(-7px); }
+    68%  { transform: translateY(-3px); }
+    82%  { transform: translateY(-5px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes dot-ping {
+    0%        { transform: scale(1); opacity: 0.7; }
+    75%, 100% { transform: scale(3.2); opacity: 0; }
   }
 
   .feed-heading {
@@ -575,8 +583,9 @@
   .post-item.unread {
     box-shadow:
       0 2px 4px rgba(0, 0, 0, 0.04),
-      0 8px 20px rgba(90, 138, 106, 0.15),
+      0 8px 20px rgba(90, 138, 106, 0.2),
       0 20px 40px rgba(0, 0, 0, 0.08);
+    animation: cardUpNudge 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   .post-header {
@@ -627,10 +636,19 @@
 
   .unread-dot {
     flex-shrink: 0;
+    position: relative;
     width: 8px;
     height: 8px;
     border-radius: 50%;
     background: var(--green);
+  }
+  .unread-dot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--green);
+    animation: dot-ping 2.5s ease-out 1s infinite;
   }
 
   .post-body {
