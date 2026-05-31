@@ -563,7 +563,7 @@
     inset: 0;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    background: rgba(64, 50, 46, 0.35);
+    background: rgba(64, 50, 46, 0.2);
     z-index: 0;
   }
 
@@ -573,7 +573,6 @@
   }
 
   .post-item.unread {
-    background: #f7fbf8;
     box-shadow:
       0 2px 4px rgba(0, 0, 0, 0.04),
       0 8px 20px rgba(90, 138, 106, 0.15),
