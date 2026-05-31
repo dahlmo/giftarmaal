@@ -4,6 +4,7 @@
   import { constants } from "../lib/constants";
   import { onMount } from "svelte";
   import { ssePostCreated } from "../lib/sse";
+  import { authed } from "../lib/auth";
 
   const RSVP_DEADLINE = "2026-05-01";
   const rsvpOpen_allowed = new Date() <= new Date(RSVP_DEADLINE);
@@ -150,6 +151,13 @@
 
   ssePostCreated.subscribe((event) => {
     if (event) loadPosts();
+  });
+
+  // Reload posts when the user logs in (Home mounts before auth completes)
+  let prevAuthed = false;
+  authed.subscribe((value) => {
+    if (value && !prevAuthed) loadPosts();
+    prevAuthed = value;
   });
 
   onMount(async () => {
