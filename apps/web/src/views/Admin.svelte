@@ -69,7 +69,7 @@
     return `${date} kl. ${time}`;
   }
 
-  type Post = { id: number; text: string; createdAt: string };
+  type Post = { id: number; text: string; authorName?: string | null; createdAt: string };
 
   const agenda = writable<AgendaItem[]>([]);
   const posts = writable<Post[]>([]);
@@ -784,11 +784,11 @@
     <div class="post-form">
       <SimpleWysiwyg
         bind:value={postText}
-        placeholder="Skriv en kort oppdatering (bold/italic + linjeskift)"
-        maxLength={280}
+        placeholder="Skriv en oppdatering (bold/italic + linjeskift)"
+        maxLength={2000}
       />
       <div class="form-actions">
-        <span class="muted">{postText.length}/280</span>
+        <span class="muted">{postText.length}/2000</span>
         <button on:click={addPost} disabled={!postText.trim()}>
           Publiser
         </button>
@@ -798,10 +798,11 @@
     <ul class="posts">
       {#each $posts as p (p.id)}
         <li>
+          <div class="post-meta-row">
+            <span class="post-author-label">{p.authorName || "Brudeparet"}</span>
+            <small class="muted">{new Date(p.createdAt).toLocaleString()}</small>
+          </div>
           <p>{p.text}</p>
-          <small class="muted">
-            {new Date(p.createdAt).toLocaleString()}
-          </small>
         </li>
       {/each}
     </ul>
@@ -1332,6 +1333,19 @@
     border: 1px solid #e8ece8;
     border-radius: 10px;
     padding: 0.6rem 0.7rem;
+  }
+
+  .post-meta-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .post-author-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #2f6f5e;
   }
 
   .muted {

@@ -22,9 +22,35 @@ model ContentBlock {
 }
 
 model Post {
-  id        Int      @id @default(autoincrement())
-  text      String   @db.VarChar(280)
-  createdAt DateTime @default(now())
+  id          Int            @id @default(autoincrement())
+  text        String
+  authorName  String         @default("Brudeparet")
+  author      Person?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorId    String?
+  reactions   PostReaction[]
+  views       PostView[]
+  createdAt   DateTime       @default(now())
+}
+
+model PostReaction {
+  id             Int      @id @default(autoincrement())
+  post           Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId         Int
+  invitationCode String
+  emoji          String   @db.VarChar(8)
+  createdAt      DateTime @default(now())
+
+  @@unique([postId, invitationCode, emoji])
+}
+
+model PostView {
+  id             Int      @id @default(autoincrement())
+  post           Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId         Int
+  invitationCode String
+  viewedAt       DateTime @default(now())
+
+  @@unique([postId, invitationCode])
 }
 
 model Location {
@@ -80,6 +106,7 @@ model Person {
   saveTheDateSent Boolean     @default(false)
   imagePath       String?
   thumbPath       String?
+  posts           Post[]
   programBookings ProgramBooking[]
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
