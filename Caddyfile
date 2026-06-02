@@ -5,6 +5,13 @@ www.{$DOMAIN} {
 {$DOMAIN} {
   encode zstd gzip
 
+  # SSE endpoint: no compression, immediate flush, no timeout
+  handle /api/events {
+    reverse_proxy api:3001 {
+      flush_interval -1
+    }
+  }
+
   handle /api/* {
     reverse_proxy api:3001
   }
