@@ -500,22 +500,50 @@
   }
 
   @keyframes cardUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   @keyframes cardUpNudge {
-    0%   { opacity: 0; transform: translateY(20px); }
-    40%  { opacity: 1; transform: translateY(0); }
-    55%  { transform: translateY(-7px); }
-    68%  { transform: translateY(-3px); }
-    82%  { transform: translateY(-5px); }
-    100% { opacity: 1; transform: translateY(0); }
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    40% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    55% {
+      transform: translateY(-7px);
+    }
+    68% {
+      transform: translateY(-3px);
+    }
+    82% {
+      transform: translateY(-5px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   @keyframes dot-ping {
-    0%        { transform: scale(1); opacity: 0.7; }
-    75%, 100% { transform: scale(3.2); opacity: 0; }
+    0% {
+      transform: scale(1);
+      opacity: 0.7;
+    }
+    75%,
+    100% {
+      transform: scale(3.2);
+      opacity: 0;
+    }
   }
 
   .feed-heading {
