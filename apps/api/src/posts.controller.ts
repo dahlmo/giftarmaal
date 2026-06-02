@@ -44,15 +44,18 @@ export class PostsController {
         ),
       ),
     ];
-    const codeToName = new Map<string, string>();
+    const codeToNames = new Map<string, string[]>();
     if (allCodes.length) {
       const persons = await this.prisma.person.findMany({
         where: { invitationCode: { in: allCodes } },
         select: { invitationCode: true, friendlyName: true },
       });
       for (const person of persons) {
-        if (person.invitationCode)
-          codeToName.set(person.invitationCode, person.friendlyName);
+        if (person.invitationCode) {
+          const list = codeToNames.get(person.invitationCode) ?? [];
+          list.push(person.friendlyName);
+          codeToNames.set(person.invitationCode, list);
+        }
       }
     }
 
@@ -79,9 +82,9 @@ export class PostsController {
                 .map((r) => r.emoji)
             : [],
           seen: code ? p.views.some((v) => v.invitationCode === code) : false,
-          viewers: p.views
-            .map((v) => codeToName.get(v.invitationCode))
-            .filter((n): n is string => !!n),
+          viewers: ((p as any).views as RawView[])
+            .map((v) => (codeToNames.get(v.invitationCode) ?? []).join(" / "))
+            .filter((n) => !!n),
         };
       }),
     };
