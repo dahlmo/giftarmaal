@@ -726,6 +726,16 @@
   .post-body :global(em) {
     font-style: italic;
   }
+  .post-body :global(a) {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: rgba(233, 234, 233, 0.45);
+    transition: text-decoration-color 0.15s ease;
+  }
+  .post-body :global(a:hover) {
+    text-decoration-color: rgba(233, 234, 233, 0.9);
+  }
 
   .post-footer {
     display: flex;
