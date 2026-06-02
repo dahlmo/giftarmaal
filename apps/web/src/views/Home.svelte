@@ -331,8 +331,8 @@
                   <button
                     class="view-count"
                     on:mouseenter={(e) => showTooltip(post.id, e.currentTarget)}
-                    on:mouseleave={hideTooltip}
-                  >sett av {post.viewCount}</button>
+                    on:mouseleave={hideTooltip}>sett av {post.viewCount}</button
+                  >
                 {/if}
               </footer>
             </li>
@@ -527,7 +527,7 @@
     margin-top: -35vh;
     display: flex;
     justify-content: center;
-    padding: 0 1.5rem 3rem;
+    padding: 0 1.5rem 9rem;
   }
 
   .feed-stack {
