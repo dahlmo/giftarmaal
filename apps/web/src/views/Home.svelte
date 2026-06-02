@@ -23,6 +23,7 @@
     reactionCounts: Record<string, number>;
     myReactions: string[];
     seen: boolean;
+    viewers: string[];
   };
 
   const EMOJIS = ["❤️", "👍", "👎", "🎉"];
@@ -129,6 +130,22 @@
     markViewed(postId);
   }
 
+  let tooltipPostId: number | null = null;
+  let tooltipX = 0;
+  let tooltipY = 0;
+
+  function showTooltip(postId: number, target: EventTarget | null) {
+    if (!target) return;
+    const rect = (target as HTMLElement).getBoundingClientRect();
+    tooltipPostId = postId;
+    tooltipX = rect.left + rect.width / 2;
+    tooltipY = rect.top;
+  }
+
+  function hideTooltip() {
+    tooltipPostId = null;
+  }
+
   function viewOnce(node: HTMLElement, postId: number) {
     const post = posts.find((p) => p.id === postId);
     if (post && isTruncatable(post.text)) return { destroy() {} };
@@ -180,6 +197,23 @@
   <title>Giftarmaal</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 </svelte:head>
+
+{#if tooltipPostId !== null}
+  {@const viewers = posts.find((p) => p.id === tooltipPostId)?.viewers ?? []}
+  <div
+    class="viewer-tooltip"
+    style="left: {tooltipX}px; top: {tooltipY}px;"
+    role="tooltip"
+  >
+    {#if viewers.length > 0}
+      {#each viewers as name}
+        <span class="viewer-name">{name}</span>
+      {/each}
+    {:else}
+      <span class="viewer-name">—</span>
+    {/if}
+  </div>
+{/if}
 
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
 {#if rsvpOpen_allowed}
@@ -294,7 +328,11 @@
                   {/each}
                 </div>
                 {#if post.viewCount > 0}
-                  <span class="view-count">sett av {post.viewCount}</span>
+                  <button
+                    class="view-count"
+                    on:mouseenter={(e) => showTooltip(post.id, e.currentTarget)}
+                    on:mouseleave={hideTooltip}
+                  >sett av {post.viewCount}</button>
                 {/if}
               </footer>
             </li>
@@ -787,6 +825,36 @@
     font-size: 0.72rem;
     color: var(--muted);
     white-space: nowrap;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: default;
+    font-family: inherit;
+    line-height: inherit;
+  }
+  .view-count:hover {
+    color: rgba(233, 234, 233, 0.75);
+  }
+
+  .viewer-tooltip {
+    position: fixed;
+    transform: translate(-50%, calc(-100% - 10px));
+    background: rgba(18, 16, 14, 0.93);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: #e9eae9;
+    border-radius: 10px;
+    padding: 0.5rem 0.8rem;
+    font-size: 0.78rem;
+    line-height: 1.7;
+    pointer-events: none;
+    z-index: 100;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    min-width: 80px;
+  }
+  .viewer-name {
+    display: block;
   }
 
   /* ── Main content below feed ── */

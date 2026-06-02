@@ -35,6 +35,27 @@ export class PostsController {
       include: { reactions: true, views: true },
     });
 
+    // Batch-fetch viewer friendly names — only friendlyName, no other PII
+    type RawView = { invitationCode: string };
+    const allCodes = [
+      ...new Set(
+        posts.flatMap((p) =>
+          ((p as any).views as RawView[]).map((v) => v.invitationCode),
+        ),
+      ),
+    ];
+    const codeToName = new Map<string, string>();
+    if (allCodes.length) {
+      const persons = await this.prisma.person.findMany({
+        where: { invitationCode: { in: allCodes } },
+        select: { invitationCode: true, friendlyName: true },
+      });
+      for (const person of persons) {
+        if (person.invitationCode)
+          codeToName.set(person.invitationCode, person.friendlyName);
+      }
+    }
+
     return {
       posts: posts.map((p) => {
         const reactionCounts: Record<string, number> = {};
@@ -58,6 +79,9 @@ export class PostsController {
                 .map((r) => r.emoji)
             : [],
           seen: code ? p.views.some((v) => v.invitationCode === code) : false,
+          viewers: p.views
+            .map((v) => codeToName.get(v.invitationCode))
+            .filter((n): n is string => !!n),
         };
       }),
     };
