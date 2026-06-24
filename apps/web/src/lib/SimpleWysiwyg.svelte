@@ -148,6 +148,7 @@
     class="editor"
     role="textbox"
     aria-multiline="true"
+    tabindex="0"
     bind:this={el}
     contenteditable="true"
     spellcheck="true"

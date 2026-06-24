@@ -5,5 +5,5 @@ export const constants = {
   hostingDescription: "et finsk selskap",
   hostingLocation:
     "Green Mountain Data Center sitt datasenter på Rennesøy i Stavanger",
-  accountNumber: "3905.16.49692",
+  accountNumber: "3905.11.02227",
 } as const;
