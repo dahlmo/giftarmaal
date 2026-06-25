@@ -802,7 +802,7 @@
             <span class="post-author-label">{p.authorName || "Brudeparet"}</span>
             <small class="muted">{new Date(p.createdAt).toLocaleString()}</small>
           </div>
-          <p>{p.text}</p>
+          <p>{@html p.text}</p>
         </li>
       {/each}
     </ul>
@@ -1333,6 +1333,9 @@
     border: 1px solid #e8ece8;
     border-radius: 10px;
     padding: 0.6rem 0.7rem;
+    overflow: hidden;
+    overflow-wrap: break-word;
+    word-break: break-word;
   }
 
   .post-meta-row {
