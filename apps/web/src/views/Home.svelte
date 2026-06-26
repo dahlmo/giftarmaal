@@ -120,11 +120,6 @@
     return stripHtml(html).length > MAX_PREVIEW_CHARS;
   }
 
-  function previewText(html: string): string {
-    const plain = stripHtml(html);
-    return plain.slice(0, MAX_PREVIEW_CHARS).replace(/\s+\S*$/, "");
-  }
-
   function expand(postId: number) {
     expandedPosts = new Set([...expandedPosts, postId]);
     markViewed(postId);
@@ -299,16 +294,18 @@
                 {/if}
               </header>
 
-              <div class="post-body">
-                {#if isTruncatable(post.text) && !expandedPosts.has(post.id)}
-                  {previewText(post.text)}…
-                  <button class="expand-btn" on:click={() => expand(post.id)}
-                    >Les mer</button
-                  >
-                {:else}
-                  {@html post.text}
-                {/if}
+              <div
+                class="post-body"
+                class:collapsed={isTruncatable(post.text) &&
+                  !expandedPosts.has(post.id)}
+              >
+                {@html post.text}
               </div>
+              {#if isTruncatable(post.text) && !expandedPosts.has(post.id)}
+                <button class="expand-btn" on:click={() => expand(post.id)}
+                  >Les mer</button
+                >
+              {/if}
 
               <footer class="post-footer">
                 <div class="reaction-bar">
@@ -732,6 +729,13 @@
     margin-bottom: 0.75rem;
     overflow-wrap: break-word;
     word-break: break-word;
+  }
+
+  .post-body.collapsed {
+    max-height: 6.5rem;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
   }
 
   .expand-btn {
