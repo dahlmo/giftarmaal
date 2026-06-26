@@ -14,7 +14,7 @@ import {
 } from "@nestjs/common";
 import type { Request } from "express";
 import { PrismaService } from "./prisma";
-import { SpouseGuard } from "./spouse.guard";
+import { AdminGuard } from "./admin.guard";
 
 @Controller("api/program-entries")
 export class ProgramEntriesController {
@@ -54,7 +54,7 @@ export class ProgramEntriesController {
   }
 
   @Get("bookings")
-  @UseGuards(SpouseGuard)
+  @UseGuards(AdminGuard)
   async adminBookings() {
     const entries = await this.prisma.programEntry.findMany({
       include: {
@@ -84,7 +84,7 @@ export class ProgramEntriesController {
   }
 
   @Put(":slug")
-  @UseGuards(SpouseGuard)
+  @UseGuards(AdminGuard)
   async upsert(
     @Param("slug") slug: string,
     @Body()

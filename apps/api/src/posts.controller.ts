@@ -13,7 +13,7 @@ import {
 import type { Request } from "express";
 import { PrismaService } from "./prisma";
 import { EventsService } from "./events.service";
-import { SpouseGuard } from "./spouse.guard";
+import { AdminGuard } from "./admin.guard";
 
 const ALLOWED_EMOJIS = new Set(["❤️", "👍", "👎", "🎉"]);
 
@@ -91,7 +91,7 @@ export class PostsController {
   }
 
   @Post()
-  @UseGuards(SpouseGuard)
+  @UseGuards(AdminGuard)
   async create(@Body() body: { text: string }, @Req() req: Request) {
     if (!body.text || body.text.length > 2000)
       return { error: "Text required, max 2000 chars" } as any;

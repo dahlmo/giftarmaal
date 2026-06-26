@@ -38,9 +38,7 @@ export class SpouseGuard implements CanActivate {
       select: { roles: true },
     });
 
-    const isSpouse = persons.some((p) =>
-      p.roles.includes("SPOUSE_TO_BE"),
-    );
+    const isSpouse = persons.some((p) => p.roles.includes("SPOUSE_TO_BE"));
 
     if (!isSpouse) throw new ForbiddenException("Ingen tilgang");
     return true;

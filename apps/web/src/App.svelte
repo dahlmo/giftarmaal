@@ -9,14 +9,14 @@
   import PrivacyPolicy from "./views/PrivacyPolicy.svelte";
   import Wishlist from "./views/Wishlist.svelte";
   import { currentPath } from "./lib/router";
-  import { isSpouse } from "./lib/auth";
+  import { isAdmin } from "./lib/auth";
 
   onMount(() => {});
 
   $: path = $currentPath;
 </script>
 
-{#if path === "/handtere" && $isSpouse}
+{#if path === "/handtere" && $isAdmin}
   <Admin />
 {:else if path === "/praktisk"}
   <PracticalInfo />

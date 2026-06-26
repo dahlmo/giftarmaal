@@ -19,7 +19,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { diskStorage } from "multer";
 import { PrismaService } from "./prisma";
 import { EventsService } from "./events.service";
-import { SpouseGuard } from "./spouse.guard";
+import { AdminGuard } from "./admin.guard";
 import * as sharp from "sharp";
 import * as path from "path";
 import * as fs from "fs";
@@ -35,7 +35,7 @@ export class PersonsController {
     private readonly events: EventsService,
   ) {}
 
-  /** All fields returned to spouse users (entire controller is behind SpouseGuard) */
+  /** All fields returned to admin users (entire controller is behind AdminGuard) */
   private static readonly SAFE_SELECT = {
     id: true,
     fullName: true,
@@ -63,7 +63,7 @@ export class PersonsController {
   } as const;
 
   @Get()
-  @UseGuards(SpouseGuard)
+  @UseGuards(AdminGuard)
   async list(@Query("limit") limit = "100") {
     const take = Math.min(Number(limit) || 100, 500);
     const persons = await this.prisma.person.findMany({
@@ -100,7 +100,7 @@ export class PersonsController {
   }
 
   @Put(":id/image")
-  @UseGuards(SpouseGuard)
+  @UseGuards(AdminGuard)
   @UseInterceptors(
     FileInterceptor("image", {
       storage: diskStorage({
@@ -172,7 +172,7 @@ export class PersonsController {
   }
 
   @Get(":id")
-  @UseGuards(SpouseGuard)
+  @UseGuards(AdminGuard)
   async get(@Param("id") id: string) {
     const person = await this.prisma.person.findUnique({
       where: { id },
@@ -186,7 +186,7 @@ export class PersonsController {
   }
 
   @Post()
-  @UseGuards(SpouseGuard)
+  @UseGuards(AdminGuard)
   async create(@Body() body: CreatePersonDto) {
     this.logger.log(`create: ${JSON.stringify(body)}`);
     const person = await this.prisma.person.create({ data: body });
@@ -197,7 +197,7 @@ export class PersonsController {
   }
 
   @Patch(":id")
-  @UseGuards(SpouseGuard)
+  @UseGuards(AdminGuard)
   async update(@Param("id") id: string, @Body() updates: UpdatePersonDto) {
     this.logger.log(`update: id=${id} updates=${JSON.stringify(updates)}`);
     const person = await this.prisma.person.update({
@@ -211,7 +211,7 @@ export class PersonsController {
   }
 
   @Delete(":id")
-  @UseGuards(SpouseGuard)
+  @UseGuards(AdminGuard)
   async delete(@Param("id") id: string) {
     this.logger.warn(`delete: id=${id}`);
     await this.prisma.person.delete({ where: { id } });
