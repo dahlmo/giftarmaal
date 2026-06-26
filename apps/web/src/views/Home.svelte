@@ -744,6 +744,7 @@
     border: none;
     padding: 0;
     margin-left: 0.1em;
+    margin-bottom: 0.75rem;
     color: #c5d9ca;
     font-size: inherit;
     font-weight: 500;
