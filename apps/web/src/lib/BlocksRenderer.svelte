@@ -258,14 +258,12 @@
                         {#if entry.bookableSlots !== null}
                           <div class="booking-slots">
                             Påmeldingen stenger {entry.bookableTo
-                              ? new Date(entry.bookableTo).toLocaleString(
+                              ? new Date(entry.bookableTo).toLocaleDateString(
                                   "no-NO",
                                   {
                                     day: "numeric",
                                     month: "long",
                                     year: "numeric",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
                                     timeZone: "Europe/Oslo",
                                   },
                                 )
