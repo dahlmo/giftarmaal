@@ -17,6 +17,12 @@
 
   const defsByType = new Map(defs.map((d) => [d.type, d]));
 
+  function toDatetimeLocalValue(dateStr: string): string {
+    const d = new Date(dateStr);
+    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16);
+  }
+
   const uid = () =>
     crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
   const defaultLayout = (): Layout => ({ width: "content", align: "center" });
@@ -349,9 +355,7 @@
                               <input
                                 type="datetime-local"
                                 value={row?.[sf.name]
-                                  ? new Date(row[sf.name])
-                                      .toISOString()
-                                      .slice(0, 16)
+                                  ? toDatetimeLocalValue(row[sf.name])
                                   : ""}
                                 on:change={(e) =>
                                   updateArrayField(
